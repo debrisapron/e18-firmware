@@ -1,0 +1,12 @@
+- Multiple channels
+- Pan
+- EQ
+- Aux
+- MIDI output
+- MIDI input?
+- Persistence
+- Decibel display
+- Frequency display
+- Mono/Stereo channels
+- Flash ES9
+- Channels 8-16

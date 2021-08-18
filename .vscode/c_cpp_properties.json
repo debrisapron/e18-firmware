@@ -1,0 +1,70 @@
+//
+// !!! WARNING !!! AUTO-GENERATED FILE!
+// PLEASE DO NOT MODIFY IT AND USE "platformio.ini":
+// https://docs.platformio.org/page/projectconf/section_env_build.html#build-flags
+//
+{
+    "configurations": [
+        {
+            "name": "PlatformIO",
+            "includePath": [
+                "/Users/debrisapron/repos/debrisapron/e18-firmware/include",
+                "/Users/debrisapron/repos/debrisapron/e18-firmware/src",
+                "/Users/debrisapron/repos/debrisapron/e18-firmware/lib/core/src",
+                "/Users/debrisapron/repos/debrisapron/e18-firmware/.pio/libdeps/mega/MIDI Library/src",
+                "/Users/debrisapron/repos/debrisapron/e18-firmware/.pio/libdeps/mega/Adafruit RA8875",
+                "/Users/debrisapron/repos/debrisapron/e18-firmware/.pio/libdeps/mega/Adafruit GFX Library",
+                "/Users/debrisapron/repos/debrisapron/e18-firmware/.pio/libdeps/mega/Adafruit BusIO",
+                "/Users/debrisapron/.platformio/packages/framework-arduino-avr/libraries/Wire/src",
+                "/Users/debrisapron/.platformio/packages/framework-arduino-avr/libraries/SPI/src",
+                "/Users/debrisapron/.platformio/packages/framework-arduino-avr/libraries/EEPROM/src",
+                "/Users/debrisapron/.platformio/packages/framework-arduino-avr/cores/arduino",
+                "/Users/debrisapron/.platformio/packages/framework-arduino-avr/variants/mega",
+                "/Users/debrisapron/repos/debrisapron/e18-firmware/.pio/libdeps/mega/Adafruit STMPE610",
+                "/Users/debrisapron/.platformio/packages/framework-arduino-avr/libraries/HID/src",
+                "/Users/debrisapron/.platformio/packages/framework-arduino-avr/libraries/SoftwareSerial/src",
+                "/Users/debrisapron/.platformio/packages/tool-unity",
+                ""
+            ],
+            "browse": {
+                "limitSymbolsToIncludedHeaders": true,
+                "path": [
+                    "/Users/debrisapron/repos/debrisapron/e18-firmware/include",
+                    "/Users/debrisapron/repos/debrisapron/e18-firmware/src",
+                    "/Users/debrisapron/repos/debrisapron/e18-firmware/lib/core/src",
+                    "/Users/debrisapron/repos/debrisapron/e18-firmware/.pio/libdeps/mega/MIDI Library/src",
+                    "/Users/debrisapron/repos/debrisapron/e18-firmware/.pio/libdeps/mega/Adafruit RA8875",
+                    "/Users/debrisapron/repos/debrisapron/e18-firmware/.pio/libdeps/mega/Adafruit GFX Library",
+                    "/Users/debrisapron/repos/debrisapron/e18-firmware/.pio/libdeps/mega/Adafruit BusIO",
+                    "/Users/debrisapron/.platformio/packages/framework-arduino-avr/libraries/Wire/src",
+                    "/Users/debrisapron/.platformio/packages/framework-arduino-avr/libraries/SPI/src",
+                    "/Users/debrisapron/.platformio/packages/framework-arduino-avr/libraries/EEPROM/src",
+                    "/Users/debrisapron/.platformio/packages/framework-arduino-avr/cores/arduino",
+                    "/Users/debrisapron/.platformio/packages/framework-arduino-avr/variants/mega",
+                    "/Users/debrisapron/repos/debrisapron/e18-firmware/.pio/libdeps/mega/Adafruit STMPE610",
+                    "/Users/debrisapron/.platformio/packages/framework-arduino-avr/libraries/HID/src",
+                    "/Users/debrisapron/.platformio/packages/framework-arduino-avr/libraries/SoftwareSerial/src",
+                    "/Users/debrisapron/.platformio/packages/tool-unity",
+                    ""
+                ]
+            },
+            "defines": [
+                "PLATFORMIO=50101",
+                "ARDUINO_AVR_MEGA2560",
+                "F_CPU=16000000L",
+                "ARDUINO_ARCH_AVR",
+                "ARDUINO=10808",
+                "__AVR_ATmega2560__",
+                ""
+            ],
+            "cStandard": "c11",
+            "cppStandard": "c++11",
+            "compilerPath": "/Users/debrisapron/.platformio/packages/toolchain-atmelavr/bin/avr-gcc",
+            "compilerArgs": [
+                "-mmcu=atmega2560",
+                ""
+            ]
+        }
+    ],
+    "version": 4
+}
