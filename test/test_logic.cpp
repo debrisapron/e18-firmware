@@ -7,29 +7,29 @@
 // }
 
 extern byte status;
-extern int state;
+extern int state[];
 
 void test_start(void) {
     TEST_ASSERT_EQUAL(0, status);
     start();
     TEST_ASSERT_EQUAL(1, status);
-    TEST_ASSERT_EQUAL(0, state);
+    TEST_ASSERT_EQUAL(0, state[0]);
 }
 
 void test_handleKnob_increment(void) {
     for (int i = 0; i < 10; i++) {
-        handleKnob(101);
+        handleKnob(201);
         delay(100);
     }
-    TEST_ASSERT_EQUAL(10, state);
+    TEST_ASSERT_EQUAL(10, state[1]);
 }
 
 void test_handleKnob_decrement(void) {
     for (int i = 0; i < 10; i++) {
-        handleKnob(102);
+        handleKnob(202);
         delay(100);
     }
-    TEST_ASSERT_EQUAL(0, state);
+    TEST_ASSERT_EQUAL(0, state[1]);
 }
 
 void setup() {

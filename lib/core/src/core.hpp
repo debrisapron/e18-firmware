@@ -18,9 +18,12 @@
 #define STATUS_INIT 0
 #define STATUS_READY 1
 
+#define ACTION_INC 1
+#define ACTION_DEC 2
+
 Adafruit_RA8875 tft = Adafruit_RA8875(RA8875_CS, RA8875_RESET);
 byte status = STATUS_INIT;
-int state = 0;
+int state[] = {0, 0, 0, 0, 0, 0, 0, 0};
 
 // #############################################################################
 // Draw a circular or elliptical arc with a defined thickness
@@ -120,14 +123,18 @@ void drawKnob(byte knobNo, int currValue, int newValue) {
 }
 
 void handleKnob(int code) {
-  int oldValue = state;
-  if (code == 101) {
-    state++;
+  int action = code % 100;
+  int knob = code * 0.01 - 1;
+  int oldValue = state[knob];
+  int newValue;
+  if (action == ACTION_INC) {
+    newValue = oldValue + 1;
   }
-  if (code == 102) {
-    state--;
+  if (action == ACTION_DEC) {
+    newValue = oldValue - 1;
   }
-  drawKnob(0, oldValue, state);
+  state[knob] = newValue;
+  drawKnob(knob, oldValue, newValue);
 }
 
 void start(void) {

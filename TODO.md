@@ -1,5 +1,5 @@
-- Multiple channels
 - Pan
+- Multiple rows
 - EQ
 - Aux
 - MIDI output
