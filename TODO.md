@@ -1,5 +1,7 @@
 - Pan
+- Bipolarity
 - Multiple rows
+- Channel labels
 - EQ
 - Aux
 - MIDI output
