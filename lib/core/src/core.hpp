@@ -20,9 +20,9 @@
 #define DEG2RAD 0.0174532925
 
 #define LAYOUT_KNOB_RADIUS 45
-#define LAYOUT_TOP_KNOB_Y 50
-#define LAYOUT_TOP_LINE_Y 150
-#define LAYOUT_TOP_PARAM_Y 167
+#define LAYOUT_KNOB_Y 50
+#define LAYOUT_ROW_LINE_Y 150
+#define LAYOUT_PARAM_Y 167
 
 #define STATUS_INIT 0
 #define STATUS_READY 1
@@ -38,7 +38,7 @@
 
 Adafruit_RA8875 tft = Adafruit_RA8875(RA8875_CS, RA8875_RESET);
 byte status = STATUS_INIT;
-byte param = PARAM_VOL;
+byte param[] = {PARAM_VOL, PARAM_PAN};
 int state[][CHANNEL_COUNT] = {
   {0, 0, 0, 0, 0, 0, 0, 0},
   {0, 0, 0, 0, 0, 0, 0, 0}
@@ -94,12 +94,11 @@ void fillArc2(unsigned int x, unsigned int y, int start_angle, int seg_count, in
 }
 
 unsigned int getKnobX(byte channel) {
-  // byte column = knobNo < 8 ? knobNo : knobNo - 8;
   return (channel * 100) + 50;
 }
 
-unsigned int getKnobY(byte channel) {
-  return channel < 8 ? LAYOUT_TOP_KNOB_Y : 430;
+unsigned int getKnobY(byte row) {
+  return row == 0 ? LAYOUT_KNOB_Y : 480 - LAYOUT_KNOB_Y;
 }
 
 void drawText(unsigned int x, unsigned int y, byte size, unsigned int color, const char* buffer) {
@@ -111,10 +110,10 @@ void drawText(unsigned int x, unsigned int y, byte size, unsigned int color, con
   tft.graphicsMode();
 }
 
-void drawKnob(byte channel, int currValue, int newValue) {
+void drawKnob(byte row, byte channel, int currValue, int newValue) {
   int start, segments;
   unsigned int x = getKnobX(channel);
-  unsigned int y = getKnobY(channel);
+  unsigned int y = getKnobY(row);
   unsigned int color;
 
   // Draw value arc
@@ -122,7 +121,7 @@ void drawKnob(byte channel, int currValue, int newValue) {
     if ((newValue >= 0 && newValue < currValue) || (newValue <= 0 && (newValue > currValue))) {
       // Remove segments
       start = newValue * 3;
-      if (param != PARAM_PAN) {
+      if (param[row] != PARAM_PAN) {
         start += 180;
       }
       segments = abs(currValue - newValue);
@@ -130,7 +129,7 @@ void drawKnob(byte channel, int currValue, int newValue) {
     } else {
       // Add segments
       start = currValue * 3;
-      if (param != PARAM_PAN) {
+      if (param[row] != PARAM_PAN) {
         start += 180;
       }
       segments = abs(newValue - currValue);
@@ -145,8 +144,8 @@ void drawKnob(byte channel, int currValue, int newValue) {
   drawText(x - 23, y - 20, RA8875_TEXT_MD, RA8875_WHITE, buffer);
 }
 
-void updateValue(byte channel, byte action) {
-  int oldValue = state[param][channel];
+void updateValue(byte row, byte channel, byte action) {
+  int oldValue = state[param[row]][channel];
   int newValue;
   if (action == ACTION_INC) {
     newValue = oldValue + 1;
@@ -154,40 +153,41 @@ void updateValue(byte channel, byte action) {
   if (action == ACTION_DEC) {
     newValue = oldValue - 1;
   }
-  state[param][channel] = newValue;
-  drawKnob(channel, oldValue, newValue);
+  state[param[row]][channel] = newValue;
+  drawKnob(row, channel, oldValue, newValue);
 }
 
-void drawKnobBackground(byte channel) {
+void drawKnobBackground(byte row, byte channel) {
   // Draw thick grey circle
   unsigned int x = getKnobX(channel);
-  unsigned int y = getKnobY(channel);
+  unsigned int y = getKnobY(row);
   tft.fillCircle(x, y, LAYOUT_KNOB_RADIUS, RA8875_DARK_GREY);
   tft.fillCircle(x, y, LAYOUT_KNOB_RADIUS - 10, RA8875_BLACK);
 
   // Draw channel number
   char buffer [2];
   itoa(channel + 1, buffer, 10);
-  drawText(x - 10, y + LAYOUT_KNOB_RADIUS + 3, RA8875_TEXT_MD, RA8875_DARK_GREY, buffer);
+  y = row == 0 ? y + LAYOUT_KNOB_RADIUS + 3 : y - LAYOUT_KNOB_RADIUS - 35;
+  drawText(x - 10, y, RA8875_TEXT_MD, RA8875_LIGHT_GREY, buffer);
 }
 
-void updateParam(byte action) {
-  if (action == ACTION_INC && param < PARAM_COUNT - 1) {
-    param++;
+void updateParam(byte row, byte action) {
+  if (action == ACTION_INC && param[row] < PARAM_COUNT - 1) {
+    param[row]++;
   }
-  if (action == ACTION_DEC && param > 0) {
-    param--;
+  if (action == ACTION_DEC && param[row] > 0) {
+    param[row]--;
   }
 
   // Draw all knobs & zero markers
   for (byte channel = 0; channel < CHANNEL_COUNT; channel++) {
     // Repaint knob bgs in case we're switching from unipolar to bipolar param
-    drawKnobBackground(channel);
-    drawKnob(channel, 0, state[param][channel]);
+    drawKnobBackground(row, channel);
+    drawKnob(row, channel, 0, state[param[row]][channel]);
   }
 
   // Draw param name
-  drawText(8, LAYOUT_TOP_PARAM_Y, RA8875_TEXT_LG, RA8875_LIGHT_GREY, paramNames[param]);
+  drawText(8, row == 0 ? LAYOUT_PARAM_Y : 426 - LAYOUT_PARAM_Y, RA8875_TEXT_LG, RA8875_LIGHT_GREY, paramNames[param[0]]);
 }
 
 void handleKnob(unsigned int code) {
@@ -195,17 +195,22 @@ void handleKnob(unsigned int code) {
   byte knob = code * 0.01; // 1-based including param knob
 
   if (knob == 1) {
-    // Handle param switch knobs
-    updateParam(action);
+    // Handle top param switch knob
+    updateParam(0, action);
+  } else if (knob == 10) {
+    // Handle bottom param switch knob
+    updateParam(1, action);
   } else {
     // Handle value knobs
-    // Convert knob number to 0-based channel index
-    updateValue(knob - 2, action);
+    byte row = knob < 10 ? 0 : 1;
+    byte channel = knob - (row == 0 ? 2 : 11);
+    updateValue(row, channel, action);
   }
 }
 
 void drawBackground(void) {
-  tft.drawFastHLine(0, LAYOUT_TOP_LINE_Y, 800, RA8875_LIGHT_GREY);
+  tft.drawFastHLine(0, LAYOUT_ROW_LINE_Y, 800, RA8875_LIGHT_GREY);
+  tft.drawFastHLine(0, 480 - LAYOUT_ROW_LINE_Y, 800, RA8875_LIGHT_GREY);
 }
 
 void start(void) {
@@ -226,7 +231,8 @@ void start(void) {
   drawBackground();
 
   // Draw starting values
-  updateParam(ACTION_NONE);
+  updateParam(0, ACTION_NONE);
+  updateParam(1, ACTION_NONE);
 
   status = STATUS_READY;
 }
