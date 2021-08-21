@@ -1,9 +1,9 @@
-- Aux 1, 2, and 3-4
-- EQ
-- Ban duplicating top and bottom
 - MIDI output
 - MIDI input?
 - Persistence
+- Aux 1, 2, and 3-4
+- EQ
+- Ban duplicating top and bottom
 - Text alignment
 - Decibel display
 - Frequency display
@@ -13,4 +13,4 @@
 - Channels 8-16
 - Mute
 - Solo
-- Show / hide channels
+- Show / hide params

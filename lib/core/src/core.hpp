@@ -1,6 +1,8 @@
 #include "Arduino.h"
 #include "Adafruit_GFX.h"
 #include "Adafruit_RA8875.h"
+// #include <EEPROM.h>
+// #include "EEPROMAnything.h"
 
 // Library only supports hardware SPI at this time
 // Connect SCLK to Mega Digital #52
