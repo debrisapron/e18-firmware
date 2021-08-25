@@ -1,6 +1,8 @@
 #include "Arduino.h"
 #include "Adafruit_GFX.h"
 #include "Adafruit_RA8875.h"
+#include <CommonBusEncoders.h>
+
 // #include <EEPROM.h>
 // #include "EEPROMAnything.h"
 
@@ -8,7 +10,7 @@
 // Connect SCLK to Mega Digital #52
 // Connect MISO to Mega Digital #50
 // Connect MOSI to Mega Digital #51
-#define RA8875_INT 3
+// #define RA8875_INT 3
 #define RA8875_CS 10
 #define RA8875_RESET 9
 
@@ -29,9 +31,9 @@
 #define STATUS_INIT 0
 #define STATUS_READY 1
 
-#define ACTION_NONE 0
+#define ACTION_NONE 255
 #define ACTION_INC 1
-#define ACTION_DEC 2
+#define ACTION_DEC 0
 
 #define PARAM_VOL 0
 #define PARAM_PAN 1
@@ -39,6 +41,7 @@
 #define CHANNEL_COUNT 8
 
 Adafruit_RA8875 tft = Adafruit_RA8875(RA8875_CS, RA8875_RESET);
+CommonBusEncoders encoders(25, 27, 51, 18);
 byte status = STATUS_INIT;
 byte param[] = {PARAM_VOL, PARAM_PAN};
 int state[][CHANNEL_COUNT] = {
@@ -193,8 +196,11 @@ void updateParam(byte row, byte action) {
 }
 
 void handleKnob(unsigned int code) {
-  byte action = code % 100;
-  byte knob = code * 0.01; // 1-based including param knob
+  byte action = code % 10;
+  byte knob = code * 0.1; // 1-based including param knob
+
+  // For now handle only inc & dec
+  if (action > 1) { return; }
 
   if (knob == 1) {
     // Handle top param switch knob
@@ -215,8 +221,42 @@ void drawBackground(void) {
   tft.drawFastHLine(0, 480 - LAYOUT_ROW_LINE_Y, 800, RA8875_LIGHT_GREY);
 }
 
-void start(void) {
-  Serial.begin(115200);
+void initializeEncoder(int id, int pin) {
+  encoders.addEncoder(id, 4, pin, 1, id * 10, (id * 10) + 9);
+}
+
+void initializeEncoders()
+{
+  encoders.setDebounce(16);
+  encoders.resetChronoAfter(10);
+
+  // Top row
+  initializeEncoder(1, 36);
+  initializeEncoder(2, 34);
+  initializeEncoder(3, 32);
+  initializeEncoder(4, 30);
+  initializeEncoder(5, 28);
+  initializeEncoder(6, 26);
+  initializeEncoder(7, 24);
+  initializeEncoder(8, 22);
+  initializeEncoder(9, 23);
+  
+  // Bottom row
+  initializeEncoder(10, 38);
+  initializeEncoder(11, 40);
+  initializeEncoder(12, 42);
+  initializeEncoder(13, 44);
+  initializeEncoder(14, 46);
+  initializeEncoder(15, 48);
+  initializeEncoder(16, 50);
+  initializeEncoder(17, 52);
+  initializeEncoder(18, 53);
+  
+  // Serial.begin(9600);
+}
+
+void coreSetup(void) {
+  Serial.begin(9600);
 
   // Start TFT
   bool ok = tft.begin(RA8875_800x480);
@@ -236,23 +276,17 @@ void start(void) {
   updateParam(0, ACTION_NONE);
   updateParam(1, ACTION_NONE);
 
+  initializeEncoders();
+
   status = STATUS_READY;
 }
 
-// MIDI_CREATE_DEFAULT_INSTANCE();
-  // MIDI.begin(1);
-  // Serial.begin(115200);
-  // Serial.print("Status: "); Serial.println(tft.readStatus(), HEX);
-
-  // // Draw 16 grey circles
-  // for (byte i = 0; i < 8; i++) {
-  //   int x = (i * 100) + 50;
-  //   tft.fillCircle(x, 50, 45, 0x8C71);
-  //   tft.fillCircle(x, 430, 45, 0x8C71);
-  //   // int seg_count = (i * 15) + 5;
-  //   // fillArc2(x, 50, 0, seg_count, 45, 45, 10, RA8875_WHITE);
-  //   // fillArc2(x, 430, 0, seg_count, 45, 45, 10, RA8875_WHITE);
-  // }
+void coreLoop(void) {
+  unsigned int code = encoders.readAll();
+  if (code != 0) {
+    handleKnob(code);
+  }
+}
 
   // for (int i = 50; i < 74; i++) 
   // {
@@ -261,9 +295,3 @@ void start(void) {
   //   MIDI.sendNoteOff(i, 64, 1); 
   //   delay(75); 
   // }
-
-  // // Delay == Bad! Set up an interrupt based timer instead 
-  // // (or something like Blink Without Delay)
-  // delay(2000); 
-
-  // // Print message

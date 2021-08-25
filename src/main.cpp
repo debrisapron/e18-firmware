@@ -1,9 +1,10 @@
 #include <Arduino.h>
-#include <core.hpp>
+#include <knobs.hpp>
 
 void setup() {
-  start();
+  coreSetup();
 }
 
 void loop() {
+  coreLoop();
 }

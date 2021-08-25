@@ -10,7 +10,7 @@
             "includePath": [
                 "/Users/debrisapron/repos/debrisapron/e18-firmware/include",
                 "/Users/debrisapron/repos/debrisapron/e18-firmware/src",
-                "/Users/debrisapron/repos/debrisapron/e18-firmware/lib/core/src",
+                "/Users/debrisapron/repos/debrisapron/e18-firmware/lib/CommonBusEncoders/src",
                 "/Users/debrisapron/repos/debrisapron/e18-firmware/.pio/libdeps/mega/MIDI Library/src",
                 "/Users/debrisapron/repos/debrisapron/e18-firmware/.pio/libdeps/mega/Adafruit RA8875",
                 "/Users/debrisapron/repos/debrisapron/e18-firmware/.pio/libdeps/mega/Adafruit GFX Library",
@@ -20,6 +20,7 @@
                 "/Users/debrisapron/.platformio/packages/framework-arduino-avr/libraries/EEPROM/src",
                 "/Users/debrisapron/.platformio/packages/framework-arduino-avr/cores/arduino",
                 "/Users/debrisapron/.platformio/packages/framework-arduino-avr/variants/mega",
+                "/Users/debrisapron/repos/debrisapron/e18-firmware/lib/core/src",
                 "/Users/debrisapron/repos/debrisapron/e18-firmware/.pio/libdeps/mega/Adafruit STMPE610",
                 "/Users/debrisapron/.platformio/packages/framework-arduino-avr/libraries/HID/src",
                 "/Users/debrisapron/.platformio/packages/framework-arduino-avr/libraries/SoftwareSerial/src",
@@ -31,7 +32,7 @@
                 "path": [
                     "/Users/debrisapron/repos/debrisapron/e18-firmware/include",
                     "/Users/debrisapron/repos/debrisapron/e18-firmware/src",
-                    "/Users/debrisapron/repos/debrisapron/e18-firmware/lib/core/src",
+                    "/Users/debrisapron/repos/debrisapron/e18-firmware/lib/CommonBusEncoders/src",
                     "/Users/debrisapron/repos/debrisapron/e18-firmware/.pio/libdeps/mega/MIDI Library/src",
                     "/Users/debrisapron/repos/debrisapron/e18-firmware/.pio/libdeps/mega/Adafruit RA8875",
                     "/Users/debrisapron/repos/debrisapron/e18-firmware/.pio/libdeps/mega/Adafruit GFX Library",
@@ -41,6 +42,7 @@
                     "/Users/debrisapron/.platformio/packages/framework-arduino-avr/libraries/EEPROM/src",
                     "/Users/debrisapron/.platformio/packages/framework-arduino-avr/cores/arduino",
                     "/Users/debrisapron/.platformio/packages/framework-arduino-avr/variants/mega",
+                    "/Users/debrisapron/repos/debrisapron/e18-firmware/lib/core/src",
                     "/Users/debrisapron/repos/debrisapron/e18-firmware/.pio/libdeps/mega/Adafruit STMPE610",
                     "/Users/debrisapron/.platformio/packages/framework-arduino-avr/libraries/HID/src",
                     "/Users/debrisapron/.platformio/packages/framework-arduino-avr/libraries/SoftwareSerial/src",
