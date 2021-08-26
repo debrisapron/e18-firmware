@@ -1,5 +1,5 @@
 #include <Arduino.h>
-#include <knobs.hpp>
+#include <core.hpp>
 
 void setup() {
   coreSetup();

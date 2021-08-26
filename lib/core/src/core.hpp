@@ -41,7 +41,7 @@
 #define CHANNEL_COUNT 8
 
 Adafruit_RA8875 tft = Adafruit_RA8875(RA8875_CS, RA8875_RESET);
-CommonBusEncoders encoders(25, 27, 51, 18);
+CommonBusEncoders encoders(23, 25, 49, 18);
 byte status = STATUS_INIT;
 byte param[] = {PARAM_VOL, PARAM_PAN};
 int state[][CHANNEL_COUNT] = {
@@ -227,40 +227,37 @@ void initializeEncoder(int id, int pin) {
 
 void initializeEncoders()
 {
-  encoders.setDebounce(16);
   encoders.resetChronoAfter(10);
 
   // Top row
-  initializeEncoder(1, 36);
-  initializeEncoder(2, 34);
-  initializeEncoder(3, 32);
-  initializeEncoder(4, 30);
-  initializeEncoder(5, 28);
-  initializeEncoder(6, 26);
-  initializeEncoder(7, 24);
-  initializeEncoder(8, 22);
-  initializeEncoder(9, 23);
+  initializeEncoder(1, 34);
+  initializeEncoder(2, 32);
+  initializeEncoder(3, 30);
+  initializeEncoder(4, 28);
+  initializeEncoder(5, 26);
+  initializeEncoder(6, 24);
+  initializeEncoder(7, 22);
+  initializeEncoder(8, 4);
+  initializeEncoder(9, 5);
   
   // Bottom row
-  initializeEncoder(10, 38);
-  initializeEncoder(11, 40);
-  initializeEncoder(12, 42);
-  initializeEncoder(13, 44);
-  initializeEncoder(14, 46);
-  initializeEncoder(15, 48);
-  initializeEncoder(16, 50);
-  initializeEncoder(17, 52);
-  initializeEncoder(18, 53);
-  
-  // Serial.begin(9600);
+  initializeEncoder(10, 36);
+  initializeEncoder(11, 38);
+  initializeEncoder(12, 40);
+  initializeEncoder(13, 42);
+  initializeEncoder(14, 44);
+  initializeEncoder(15, 46);
+  initializeEncoder(16, 48);
+  initializeEncoder(17, 7);
+  initializeEncoder(18, 6);
 }
 
 void coreSetup(void) {
-  Serial.begin(9600);
 
   // Start TFT
   bool ok = tft.begin(RA8875_800x480);
   if (!ok) {
+    Serial.begin(9600);
     Serial.println("RA8875 Not Found!");
     return;
   }
