@@ -1,7 +1,7 @@
 #include "Arduino.h"
 #include "Adafruit_GFX.h"
 #include "Adafruit_RA8875.h"
-#include <CommonBusEncoders.h>
+#include "knobs.hpp"
 
 // #include <EEPROM.h>
 // #include "EEPROMAnything.h"
@@ -40,15 +40,14 @@
 #define PARAM_COUNT 2
 #define CHANNEL_COUNT 8
 
-Adafruit_RA8875 tft = Adafruit_RA8875(RA8875_CS, RA8875_RESET);
-CommonBusEncoders encoders(23, 25, 49, 18);
-byte status = STATUS_INIT;
-byte param[] = {PARAM_VOL, PARAM_PAN};
-int state[][CHANNEL_COUNT] = {
+Adafruit_RA8875 core_tft = Adafruit_RA8875(RA8875_CS, RA8875_RESET);
+byte core_status = STATUS_INIT;
+byte core_param[] = {PARAM_VOL, PARAM_PAN};
+int core_state[][CHANNEL_COUNT] = {
   {0, 0, 0, 0, 0, 0, 0, 0},
   {0, 0, 0, 0, 0, 0, 0, 0}
 };
-const char *paramNames[] = {"VOL", "PAN"};
+const char *core_paramNames[] = {"VOL", "PAN"};
 
 // #############################################################################
 // Draw a circular or elliptical arc with a defined thickness
@@ -63,7 +62,7 @@ const char *paramNames[] = {"VOL", "PAN"};
 // colour = 16 bit colour value
 // Note if rx and ry are the same then an arc of a circle is drawn
 
-void fillArc2(unsigned int x, unsigned int y, int start_angle, int seg_count, int rx, int ry, int w, unsigned int colour)
+void core_fillArc2(unsigned int x, unsigned int y, int start_angle, int seg_count, int rx, int ry, int w, unsigned int colour)
 {
   byte seg = 3; // Segments are 3 degrees wide = 120 segments for 360 degrees
   byte inc = 3; // Draw segments every 3 degrees, increase to 6 for segmented ring
@@ -87,8 +86,8 @@ void fillArc2(unsigned int x, unsigned int y, int start_angle, int seg_count, in
     int x3 = sx2 * rx + x;
     int y3 = sy2 * ry + y;
 
-    tft.fillTriangle(x0, y0, x1, y1, x2, y2, colour);
-    tft.fillTriangle(x1, y1, x2, y2, x3, y3, colour);
+    core_tft.fillTriangle(x0, y0, x1, y1, x2, y2, colour);
+    core_tft.fillTriangle(x1, y1, x2, y2, x3, y3, colour);
 
     // Copy segment end to segment start for next segment
     x0 = x2;
@@ -98,27 +97,27 @@ void fillArc2(unsigned int x, unsigned int y, int start_angle, int seg_count, in
   }
 }
 
-unsigned int getKnobX(byte channel) {
+unsigned int core_getKnobX(byte channel) {
   return (channel * 100) + 50;
 }
 
-unsigned int getKnobY(byte row) {
+unsigned int core_getKnobY(byte row) {
   return row == 0 ? LAYOUT_KNOB_Y : 480 - LAYOUT_KNOB_Y;
 }
 
-void drawText(unsigned int x, unsigned int y, byte size, unsigned int color, const char* buffer) {
-  tft.textMode();
-  tft.textSetCursor(x, y);
-  tft.textColor(color, RA8875_BLACK);
-  tft.textEnlarge(size);
-  tft.textWrite(buffer);
-  tft.graphicsMode();
+void core_drawText(unsigned int x, unsigned int y, byte size, unsigned int color, const char* buffer) {
+  core_tft.textMode();
+  core_tft.textSetCursor(x, y);
+  core_tft.textColor(color, RA8875_BLACK);
+  core_tft.textEnlarge(size);
+  core_tft.textWrite(buffer);
+  core_tft.graphicsMode();
 }
 
-void drawKnob(byte row, byte channel, int currValue, int newValue) {
+void core_drawKnob(byte row, byte channel, int currValue, int newValue) {
   int start, segments;
-  unsigned int x = getKnobX(channel);
-  unsigned int y = getKnobY(row);
+  unsigned int x = core_getKnobX(channel);
+  unsigned int y = core_getKnobY(row);
   unsigned int color;
 
   // Draw value arc
@@ -126,7 +125,7 @@ void drawKnob(byte row, byte channel, int currValue, int newValue) {
     if ((newValue >= 0 && newValue < currValue) || (newValue <= 0 && (newValue > currValue))) {
       // Remove segments
       start = newValue * 3;
-      if (param[row] != PARAM_PAN) {
+      if (core_param[row] != PARAM_PAN) {
         start += 180;
       }
       segments = abs(currValue - newValue);
@@ -134,23 +133,23 @@ void drawKnob(byte row, byte channel, int currValue, int newValue) {
     } else {
       // Add segments
       start = currValue * 3;
-      if (param[row] != PARAM_PAN) {
+      if (core_param[row] != PARAM_PAN) {
         start += 180;
       }
       segments = abs(newValue - currValue);
       color = RA8875_WHITE;
     }
-    fillArc2(x, y, start, segments, LAYOUT_KNOB_RADIUS, LAYOUT_KNOB_RADIUS, 10, color);
+    core_fillArc2(x, y, start, segments, LAYOUT_KNOB_RADIUS, LAYOUT_KNOB_RADIUS, 10, color);
   }
 
   // Draw value text
   char buffer [4];
   sprintf(buffer, "%3i", newValue);
-  drawText(x - 23, y - 20, RA8875_TEXT_MD, RA8875_WHITE, buffer);
+  core_drawText(x - 23, y - 20, RA8875_TEXT_MD, RA8875_WHITE, buffer);
 }
 
-void updateValue(byte row, byte channel, byte action) {
-  int oldValue = state[param[row]][channel];
+void core_updateValue(byte row, byte channel, byte action) {
+  int oldValue = core_state[core_param[row]][channel];
   int newValue;
   if (action == ACTION_INC) {
     newValue = oldValue + 1;
@@ -158,44 +157,44 @@ void updateValue(byte row, byte channel, byte action) {
   if (action == ACTION_DEC) {
     newValue = oldValue - 1;
   }
-  state[param[row]][channel] = newValue;
-  drawKnob(row, channel, oldValue, newValue);
+  core_state[core_param[row]][channel] = newValue;
+  core_drawKnob(row, channel, oldValue, newValue);
 }
 
-void drawKnobBackground(byte row, byte channel) {
+void core_drawKnobBackground(byte row, byte channel) {
   // Draw thick grey circle
-  unsigned int x = getKnobX(channel);
-  unsigned int y = getKnobY(row);
-  tft.fillCircle(x, y, LAYOUT_KNOB_RADIUS, RA8875_DARK_GREY);
-  tft.fillCircle(x, y, LAYOUT_KNOB_RADIUS - 10, RA8875_BLACK);
+  unsigned int x = core_getKnobX(channel);
+  unsigned int y = core_getKnobY(row);
+  core_tft.fillCircle(x, y, LAYOUT_KNOB_RADIUS, RA8875_DARK_GREY);
+  core_tft.fillCircle(x, y, LAYOUT_KNOB_RADIUS - 10, RA8875_BLACK);
 
   // Draw channel number
   char buffer [2];
   itoa(channel + 1, buffer, 10);
   y = row == 0 ? y + LAYOUT_KNOB_RADIUS + 3 : y - LAYOUT_KNOB_RADIUS - 35;
-  drawText(x - 10, y, RA8875_TEXT_MD, RA8875_LIGHT_GREY, buffer);
+  core_drawText(x - 10, y, RA8875_TEXT_MD, RA8875_LIGHT_GREY, buffer);
 }
 
-void updateParam(byte row, byte action) {
-  if (action == ACTION_INC && param[row] < PARAM_COUNT - 1) {
-    param[row]++;
+void core_updateParam(byte row, byte action) {
+  if (action == ACTION_INC && core_param[row] < PARAM_COUNT - 1) {
+    core_param[row]++;
   }
-  if (action == ACTION_DEC && param[row] > 0) {
-    param[row]--;
+  if (action == ACTION_DEC && core_param[row] > 0) {
+    core_param[row]--;
   }
 
   // Draw all knobs & zero markers
   for (byte channel = 0; channel < CHANNEL_COUNT; channel++) {
     // Repaint knob bgs in case we're switching from unipolar to bipolar param
-    drawKnobBackground(row, channel);
-    drawKnob(row, channel, 0, state[param[row]][channel]);
+    core_drawKnobBackground(row, channel);
+    core_drawKnob(row, channel, 0, core_state[core_param[row]][channel]);
   }
 
   // Draw param name
-  drawText(8, row == 0 ? LAYOUT_PARAM_Y : 426 - LAYOUT_PARAM_Y, RA8875_TEXT_LG, RA8875_LIGHT_GREY, paramNames[param[0]]);
+  core_drawText(8, row == 0 ? LAYOUT_PARAM_Y : 426 - LAYOUT_PARAM_Y, RA8875_TEXT_LG, RA8875_LIGHT_GREY, core_paramNames[core_param[0]]);
 }
 
-void handleKnob(unsigned int code) {
+void core_handleKnob(unsigned int code) {
   byte action = code % 10;
   byte knob = code * 0.1; // 1-based including param knob
 
@@ -204,84 +203,52 @@ void handleKnob(unsigned int code) {
 
   if (knob == 1) {
     // Handle top param switch knob
-    updateParam(0, action);
+    core_updateParam(0, action);
   } else if (knob == 10) {
     // Handle bottom param switch knob
-    updateParam(1, action);
+    core_updateParam(1, action);
   } else {
     // Handle value knobs
     byte row = knob < 10 ? 0 : 1;
     byte channel = knob - (row == 0 ? 2 : 11);
-    updateValue(row, channel, action);
+    core_updateValue(row, channel, action);
   }
 }
 
-void drawBackground(void) {
-  tft.drawFastHLine(0, LAYOUT_ROW_LINE_Y, 800, RA8875_LIGHT_GREY);
-  tft.drawFastHLine(0, 480 - LAYOUT_ROW_LINE_Y, 800, RA8875_LIGHT_GREY);
+void core_drawBackground(void) {
+  core_tft.drawFastHLine(0, LAYOUT_ROW_LINE_Y, 800, RA8875_LIGHT_GREY);
+  core_tft.drawFastHLine(0, 480 - LAYOUT_ROW_LINE_Y, 800, RA8875_LIGHT_GREY);
 }
 
-void initializeEncoder(int id, int pin) {
-  encoders.addEncoder(id, 4, pin, 1, id * 10, (id * 10) + 9);
-}
-
-void initializeEncoders()
-{
-  encoders.resetChronoAfter(10);
-
-  // Top row
-  initializeEncoder(1, 34);
-  initializeEncoder(2, 32);
-  initializeEncoder(3, 30);
-  initializeEncoder(4, 28);
-  initializeEncoder(5, 26);
-  initializeEncoder(6, 24);
-  initializeEncoder(7, 22);
-  initializeEncoder(8, 4);
-  initializeEncoder(9, 5);
-  
-  // Bottom row
-  initializeEncoder(10, 36);
-  initializeEncoder(11, 38);
-  initializeEncoder(12, 40);
-  initializeEncoder(13, 42);
-  initializeEncoder(14, 44);
-  initializeEncoder(15, 46);
-  initializeEncoder(16, 48);
-  initializeEncoder(17, 7);
-  initializeEncoder(18, 6);
-}
-
-void coreSetup(void) {
-
+void core_setup(void) {
   // Start TFT
-  bool ok = tft.begin(RA8875_800x480);
+  bool ok = core_tft.begin(RA8875_800x480);
   if (!ok) {
     Serial.begin(9600);
     Serial.println("RA8875 Not Found!");
     return;
   }
-  tft.displayOn(true);
-  tft.GPIOX(true); // Enable TFT - display enable tied to GPIOX
-  tft.PWM1config(true, RA8875_PWM_CLK_DIV1024); // PWM output for backlight
-  tft.PWM1out(255);
+  core_tft.displayOn(true);
+  core_tft.GPIOX(true); // Enable TFT - display enable tied to GPIOX
+  core_tft.PWM1config(true, RA8875_PWM_CLK_DIV1024); // PWM output for backlight
+  core_tft.PWM1out(255);
 
   // Draw lines
-  drawBackground();
+  core_drawBackground();
 
   // Draw starting values
-  updateParam(0, ACTION_NONE);
-  updateParam(1, ACTION_NONE);
+  core_updateParam(0, ACTION_NONE);
+  core_updateParam(1, ACTION_NONE);
 
-  initializeEncoders();
+  knobs_setup();
 
-  status = STATUS_READY;
+  core_status = STATUS_READY;
 }
 
-void coreLoop(void) {
-  unsigned int code = encoders.readAll();
+void core_loop(void) {
+  unsigned int code = knobs_read();
   if (code != 0) {
-    handleKnob(code);
+    core_handleKnob(code);
   }
 }
 

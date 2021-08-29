@@ -2,9 +2,9 @@
 #include <core.hpp>
 
 void setup() {
-  coreSetup();
+  core_setup();
 }
 
 void loop() {
-  coreLoop();
+  core_loop();
 }
