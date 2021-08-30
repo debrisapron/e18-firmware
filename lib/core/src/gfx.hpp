@@ -14,8 +14,8 @@
 #define DEG2RAD 0.0174532925
 #define BYTE2DEG 1.41176470588
 
-#define LAYOUT_KNOB_RADIUS 45
-#define LAYOUT_KNOB_Y 50
+#define LAYOUT_DIAL_RADIUS 45
+#define LAYOUT_DIAL_Y 50
 #define LAYOUT_ROW_LINE_Y 150
 #define LAYOUT_PARAM_Y 167
 
@@ -25,12 +25,12 @@ Adafruit_RA8875 gfx_tft = Adafruit_RA8875(RA8875_CS, RA8875_RESET);
 
 // extern void __log(const char* name, const char* value);
 
-unsigned int gfx_getKnobX(byte channel) {
+unsigned int gfx_getDialX(byte channel) {
   return (channel * 100) + 50;
 }
 
-unsigned int gfx_getKnobY(byte row) {
-  return row == 0 ? LAYOUT_KNOB_Y : 480 - LAYOUT_KNOB_Y;
+unsigned int gfx_getDialY(byte row) {
+  return row == 0 ? LAYOUT_DIAL_Y : 480 - LAYOUT_DIAL_Y;
 }
 
 void gfx_drawText(unsigned int x, unsigned int y, byte size, unsigned int color, const char* buffer) {
@@ -50,13 +50,13 @@ void gfx_drawValueLine(int xStart, int yStart, byte value, int length, int color
   gfx_tft.drawLine(xStart, yStart, xEnd, yEnd, color);
 }
 
-void gfx_drawKnob(byte row, byte channel, bool isBipolar, byte oldValue, byte newValue) {
-  unsigned int x = gfx_getKnobX(channel);
-  unsigned int y = gfx_getKnobY(row);
+void gfx_drawDial(byte row, byte channel, bool isBipolar, byte oldValue, byte newValue) {
+  unsigned int x = gfx_getDialX(channel);
+  unsigned int y = gfx_getDialY(row);
 
   if (newValue != oldValue) {
     // Clear existing line
-    gfx_drawValueLine(x, y, oldValue, LAYOUT_KNOB_RADIUS - 10, RA8875_BLACK);
+    gfx_drawValueLine(x, y, oldValue, LAYOUT_DIAL_RADIUS - 10, RA8875_BLACK);
   };
   
   // Draw value text
@@ -71,7 +71,7 @@ void gfx_drawKnob(byte row, byte channel, bool isBipolar, byte oldValue, byte ne
   gfx_drawText(x - 22, y - 18, RA8875_TEXT_MD, RA8875_WHITE, buffer);
 
   // Draw value line
-  gfx_drawValueLine(x, y, newValue, LAYOUT_KNOB_RADIUS - 10, RA8875_RED);
+  gfx_drawValueLine(x, y, newValue, LAYOUT_DIAL_RADIUS - 10, RA8875_RED);
 }
 
 void gfx_drawParamName(byte row, const char* name) {
@@ -80,12 +80,12 @@ void gfx_drawParamName(byte row, const char* name) {
 
 void gfx_drawRow(byte row, const char* paramName, bool isBipolar, const byte* oldValues, const byte* newValues) {
   unsigned int x;
-  unsigned int y = gfx_getKnobY(row);
-  unsigned int yTriB = y + LAYOUT_KNOB_RADIUS;
-  unsigned int yTriT = y - LAYOUT_KNOB_RADIUS;
+  unsigned int y = gfx_getDialY(row);
+  unsigned int yTriB = y + LAYOUT_DIAL_RADIUS;
+  unsigned int yTriT = y - LAYOUT_DIAL_RADIUS;
   for (byte channel = 0; channel < CHANNEL_COUNT; channel++) {
-    gfx_drawKnob(row, channel, isBipolar, oldValues[channel], newValues[channel]);
-    x = gfx_getKnobX(channel);
+    gfx_drawDial(row, channel, isBipolar, oldValues[channel], newValues[channel]);
+    x = gfx_getDialX(channel);
     gfx_tft.drawTriangle(x - 5, yTriB, x + 5, yTriB, x, yTriB - 10, RA8875_RED);
     gfx_tft.drawTriangle(x - 5, yTriT, x + 5, yTriT, x, yTriT + 10, RA8875_RED);
   }
@@ -98,10 +98,10 @@ void gfx_drawChannelNumbers() {
   int y;
   char buffer [2];
   for (byte row = 0; row < 2; row++) {
-    y = gfx_getKnobY(row);
-    y = row == 0 ? y + LAYOUT_KNOB_RADIUS + 3 : y - LAYOUT_KNOB_RADIUS - 35;
+    y = gfx_getDialY(row);
+    y = row == 0 ? y + LAYOUT_DIAL_RADIUS + 3 : y - LAYOUT_DIAL_RADIUS - 35;
     for (byte channel = 0; channel < CHANNEL_COUNT; channel++) {
-      x = gfx_getKnobX(channel);
+      x = gfx_getDialX(channel);
       itoa(channel + 1, buffer, 10);
       gfx_drawText(x - 10, y, RA8875_TEXT_MD, RA8875_LIGHT_GREY, buffer);
     }

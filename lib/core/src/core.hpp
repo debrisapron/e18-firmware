@@ -39,7 +39,7 @@ void core_updateValue(byte row, byte channel, byte action) {
     newValue = oldValue - 2;
   }
   core_state[core_param[row]][channel] = newValue;
-  gfx_drawKnob(row, channel, core_getIsBipolar(row), oldValue, newValue);
+  gfx_drawDial(row, channel, core_getIsBipolar(row), oldValue, newValue);
 }
 
 void core_drawRow(byte row, const byte* oldValues, const byte* newValues) {
