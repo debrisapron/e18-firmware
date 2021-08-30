@@ -12,61 +12,18 @@
 #define RA8875_TEXT_LG 2
 
 #define DEG2RAD 0.0174532925
+#define BYTE2DEG 1.41176470588
 
 #define LAYOUT_KNOB_RADIUS 45
 #define LAYOUT_KNOB_Y 50
 #define LAYOUT_ROW_LINE_Y 150
 #define LAYOUT_PARAM_Y 167
 
+#define CHANNEL_COUNT 8
+
 Adafruit_RA8875 gfx_tft = Adafruit_RA8875(RA8875_CS, RA8875_RESET);
 
-// #############################################################################
-// Draw a circular or elliptical arc with a defined thickness
-// #############################################################################
-
-// x,y == coords of centre of arc
-// start_angle = 0 - 359
-// seg_count = number of 3 degree segments to draw (120 => 360 degree arc)
-// rx = x axis radius
-// yx = y axis radius
-// w  = width (thickness) of arc in pixels
-// colour = 16 bit colour value
-// Note if rx and ry are the same then an arc of a circle is drawn
-
-void gfx_fillArc2(unsigned int x, unsigned int y, int start_angle, int seg_count, int rx, int ry, int w, unsigned int colour)
-{
-  byte seg = 3; // Segments are 3 degrees wide = 120 segments for 360 degrees
-  byte inc = 3; // Draw segments every 3 degrees, increase to 6 for segmented ring
-
-  // Calculate first pair of coordinates for segment start
-  float sx = cos((start_angle - 90) * DEG2RAD);
-  float sy = sin((start_angle - 90) * DEG2RAD);
-  uint16_t x0 = sx * (rx - w) + x;
-  uint16_t y0 = sy * (ry - w) + y;
-  uint16_t x1 = sx * rx + x;
-  uint16_t y1 = sy * ry + y;
-
-  // Draw colour blocks every inc degrees
-  for (int i = start_angle; i < start_angle + seg * seg_count; i += inc) {
-
-    // Calculate pair of coordinates for segment end
-    float sx2 = cos((i + seg - 90) * DEG2RAD);
-    float sy2 = sin((i + seg - 90) * DEG2RAD);
-    int x2 = sx2 * (rx - w) + x;
-    int y2 = sy2 * (ry - w) + y;
-    int x3 = sx2 * rx + x;
-    int y3 = sy2 * ry + y;
-
-    gfx_tft.fillTriangle(x0, y0, x1, y1, x2, y2, colour);
-    gfx_tft.fillTriangle(x1, y1, x2, y2, x3, y3, colour);
-
-    // Copy segment end to segment start for next segment
-    x0 = x2;
-    y0 = y2;
-    x1 = x3;
-    y1 = y3;
-  }
-}
+// extern void __log(const char* name, const char* value);
 
 unsigned int gfx_getKnobX(byte channel) {
   return (channel * 100) + 50;
@@ -85,56 +42,70 @@ void gfx_drawText(unsigned int x, unsigned int y, byte size, unsigned int color,
   gfx_tft.graphicsMode();
 }
 
-void gfx_drawKnob(byte row, byte channel, bool isBipolar, int currValue, int newValue) {
-  int start, segments;
+// value param is 0-255 mapped to 180-540 degrees
+void gfx_drawValueLine(int xStart, int yStart, byte value, int length, int color) {
+  float rads = (value * BYTE2DEG + 180) * DEG2RAD; // convert value to radians
+  int xEnd = xStart + length * sin(rads); // Ending x-coordinate offset & radius
+  int yEnd = yStart - length * cos(rads); // Ending y-coordinate offset & radius
+  gfx_tft.drawLine(xStart, yStart, xEnd, yEnd, color);
+}
+
+void gfx_drawKnob(byte row, byte channel, bool isBipolar, byte oldValue, byte newValue) {
   unsigned int x = gfx_getKnobX(channel);
   unsigned int y = gfx_getKnobY(row);
-  unsigned int color;
 
-  // Draw value arc
-  if (newValue != currValue) {
-    if ((newValue >= 0 && newValue < currValue) || (newValue <= 0 && (newValue > currValue))) {
-      // Remove segments
-      start = newValue * 3;
-      if (!isBipolar) {
-        start += 180;
-      }
-      segments = abs(currValue - newValue);
-      color = RA8875_DARK_GREY;
-    } else {
-      // Add segments
-      start = currValue * 3;
-      if (!isBipolar) {
-        start += 180;
-      }
-      segments = abs(newValue - currValue);
-      color = RA8875_WHITE;
-    }
-    gfx_fillArc2(x, y, start, segments, LAYOUT_KNOB_RADIUS, LAYOUT_KNOB_RADIUS, 10, color);
-  }
-
+  if (newValue != oldValue) {
+    // Clear existing line
+    gfx_drawValueLine(x, y, oldValue, LAYOUT_KNOB_RADIUS - 10, RA8875_BLACK);
+  };
+  
   // Draw value text
-  char buffer [4];
-  sprintf(buffer, "%3i", newValue);
-  gfx_drawText(x - 23, y - 20, RA8875_TEXT_MD, RA8875_WHITE, buffer);
+  char buffer[5];
+  if (isBipolar) {
+    int dispVal = newValue / 2 - 64;
+    char sign = dispVal < 0 ? '-' : '+';
+    sprintf(buffer, "%c%02d", sign, abs(dispVal));
+  } else {
+    sprintf(buffer, "%03d", newValue / 2);
+  }
+  gfx_drawText(x - 22, y - 18, RA8875_TEXT_MD, RA8875_WHITE, buffer);
+
+  // Draw value line
+  gfx_drawValueLine(x, y, newValue, LAYOUT_KNOB_RADIUS - 10, RA8875_RED);
 }
 
 void gfx_drawParamName(byte row, const char* name) {
   gfx_drawText(8, row == 0 ? LAYOUT_PARAM_Y : 426 - LAYOUT_PARAM_Y, RA8875_TEXT_LG, RA8875_LIGHT_GREY, name);
 }
 
-void gfx_drawKnobBackground(byte row, byte channel) {
-  // Draw thick grey circle
-  unsigned int x = gfx_getKnobX(channel);
+void gfx_drawRow(byte row, const char* paramName, bool isBipolar, const byte* oldValues, const byte* newValues) {
+  unsigned int x;
   unsigned int y = gfx_getKnobY(row);
-  gfx_tft.fillCircle(x, y, LAYOUT_KNOB_RADIUS, RA8875_DARK_GREY);
-  gfx_tft.fillCircle(x, y, LAYOUT_KNOB_RADIUS - 10, RA8875_BLACK);
+  unsigned int yTriB = y + LAYOUT_KNOB_RADIUS;
+  unsigned int yTriT = y - LAYOUT_KNOB_RADIUS;
+  for (byte channel = 0; channel < CHANNEL_COUNT; channel++) {
+    gfx_drawKnob(row, channel, isBipolar, oldValues[channel], newValues[channel]);
+    x = gfx_getKnobX(channel);
+    gfx_tft.drawTriangle(x - 5, yTriB, x + 5, yTriB, x, yTriB - 10, RA8875_RED);
+    gfx_tft.drawTriangle(x - 5, yTriT, x + 5, yTriT, x, yTriT + 10, RA8875_RED);
+  }
 
-  // Draw channel number
+  gfx_drawParamName(row, paramName);
+}
+
+void gfx_drawChannelNumbers() {
+  int x;
+  int y;
   char buffer [2];
-  itoa(channel + 1, buffer, 10);
-  y = row == 0 ? y + LAYOUT_KNOB_RADIUS + 3 : y - LAYOUT_KNOB_RADIUS - 35;
-  gfx_drawText(x - 10, y, RA8875_TEXT_MD, RA8875_LIGHT_GREY, buffer);
+  for (byte row = 0; row < 2; row++) {
+    y = gfx_getKnobY(row);
+    y = row == 0 ? y + LAYOUT_KNOB_RADIUS + 3 : y - LAYOUT_KNOB_RADIUS - 35;
+    for (byte channel = 0; channel < CHANNEL_COUNT; channel++) {
+      x = gfx_getKnobX(channel);
+      itoa(channel + 1, buffer, 10);
+      gfx_drawText(x - 10, y, RA8875_TEXT_MD, RA8875_LIGHT_GREY, buffer);
+    }
+  }
 }
 
 void gfx_drawBackground(void) {
@@ -154,6 +125,6 @@ void gfx_setup(void) {
   gfx_tft.PWM1config(true, RA8875_PWM_CLK_DIV1024); // PWM output for backlight
   gfx_tft.PWM1out(255);
 
-  // Draw lines
   gfx_drawBackground();
+  gfx_drawChannelNumbers();
 }

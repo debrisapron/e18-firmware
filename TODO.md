@@ -14,11 +14,5 @@
 - Mute
 - Solo
 - Show / hide params
-
-White - 5v
-Black - gnd
-Blue - 9
-Green - 10 -CS                                                            
-Brown - MISO
-Red - SCK
-Orange - MOSI
+- Assert on tft calls
+- Assert on MIDI calls

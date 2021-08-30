@@ -1,10 +1,18 @@
 #include <Arduino.h>
 #include <unity.h>
 #include <core.hpp>
-
+ 
 extern byte core_status;
 extern byte core_param[];
-extern int core_state[][8];
+extern byte core_state[][8];
+
+// void __log(const char* name, const char* value) {
+//     char msg[100] = "";
+//     strcat(msg, name);
+//     strcat(msg, ": ");
+//     strcat(msg, value);
+//     TEST_MESSAGE(msg);
+// }
 
 void test_start(void) {
     TEST_ASSERT_EQUAL(0, core_status);
@@ -19,7 +27,7 @@ void test_handleKnob_increment(void) {
         core_handleKnob(21);
         delay(100);
     }
-    TEST_ASSERT_EQUAL(10, core_state[0][0]);
+    TEST_ASSERT_EQUAL(20, core_state[0][0]);
 }
 
 void test_handleKnob_decrement(void) {
@@ -46,17 +54,17 @@ void test_handleKnob_pan(void) {
         core_handleKnob(91);
         delay(100);
     }
-    TEST_ASSERT_EQUAL(5, core_state[1][7]);
+    TEST_ASSERT_EQUAL(138, core_state[1][7]);
     for (int i = 0; i < 10; i++) {
         core_handleKnob(90);
         delay(100);
     }
-    TEST_ASSERT_EQUAL(-5, core_state[1][7]);
+    TEST_ASSERT_EQUAL(118, core_state[1][7]);
     for (int i = 0; i < 5; i++) {
         core_handleKnob(91);
         delay(100);
     }
-    TEST_ASSERT_EQUAL(0, core_state[1][7]);
+    TEST_ASSERT_EQUAL(128, core_state[1][7]);
 }
 
 void test_handleKnob_bottom(void) {
@@ -67,7 +75,7 @@ void test_handleKnob_bottom(void) {
         core_handleKnob(111);
         delay(100);
     }
-    TEST_ASSERT_EQUAL(5, core_state[1][0]);
+    TEST_ASSERT_EQUAL(138, core_state[1][0]);
 }
 
 void setup() {
