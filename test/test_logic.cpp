@@ -27,55 +27,45 @@ void test_handleKnob_increment(void) {
         core_handleKnob(21);
         delay(100);
     }
+    // It should go up 2 for every click
     TEST_ASSERT_EQUAL(20, core_state[0][0]);
 }
 
 void test_handleKnob_decrement(void) {
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 12; i++) {
         core_handleKnob(20);
         delay(100);
     }
+    // It should go down 2 for every click, but not below zero
     TEST_ASSERT_EQUAL(0, core_state[0][0]);
 }
 
 void test_handleKnob_param(void) {
     core_handleKnob(11);
     delay(100);
-    TEST_ASSERT_EQUAL(1, core_param[0]);
+    // It should skip the other row's param
+    TEST_ASSERT_EQUAL(2, core_param[0]);
     core_handleKnob(10);
     delay(100);
     TEST_ASSERT_EQUAL(0, core_param[0]);
-}
 
-void test_handleKnob_pan(void) {
-    core_handleKnob(11);
-    delay(100);
-    for (int i = 0; i < 5; i++) {
-        core_handleKnob(91);
-        delay(100);
-    }
-    TEST_ASSERT_EQUAL(138, core_state[1][7]);
-    for (int i = 0; i < 10; i++) {
-        core_handleKnob(90);
-        delay(100);
-    }
-    TEST_ASSERT_EQUAL(118, core_state[1][7]);
-    for (int i = 0; i < 5; i++) {
-        core_handleKnob(91);
-        delay(100);
-    }
-    TEST_ASSERT_EQUAL(128, core_state[1][7]);
-}
-
-void test_handleKnob_bottom(void) {
+    // Bottom row
     core_handleKnob(101);
     delay(100);
+    TEST_ASSERT_EQUAL(2, core_param[1]);
+    core_handleKnob(100);
+    delay(100);
     TEST_ASSERT_EQUAL(1, core_param[1]);
-    for (int i = 0; i < 5; i++) {
+}
+
+void test_handleKnob_eqType(void) {
+    core_handleKnob(101);
+    for (int i = 0; i < 10; i++) {
         core_handleKnob(111);
         delay(100);
     }
-    TEST_ASSERT_EQUAL(138, core_state[1][0]);
+    // It should go up 1 for every click, but not above 7
+    TEST_ASSERT_EQUAL(7, core_state[2][0]);
 }
 
 void setup() {
@@ -85,8 +75,7 @@ void setup() {
     RUN_TEST(test_handleKnob_increment);
     RUN_TEST(test_handleKnob_decrement);
     RUN_TEST(test_handleKnob_param);
-    RUN_TEST(test_handleKnob_pan);
-    RUN_TEST(test_handleKnob_bottom);
+    RUN_TEST(test_handleKnob_eqType);
 }
 
 void loop() {

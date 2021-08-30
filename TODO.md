@@ -2,7 +2,7 @@
 - MIDI input?
 - Persistence
 - Aux 1, 2, and 3-4
-- EQ
+- EQ 1-4
 - Ban duplicating top and bottom
 - Text alignment
 - Decibel display
@@ -16,3 +16,4 @@
 - Show / hide params
 - Assert on tft calls
 - Assert on MIDI calls
+- Icons for filter types

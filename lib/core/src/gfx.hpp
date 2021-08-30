@@ -50,67 +50,59 @@ void gfx_drawValueLine(int xStart, int yStart, byte value, int length, int color
   gfx_tft.drawLine(xStart, yStart, xEnd, yEnd, color);
 }
 
-void gfx_drawDial(byte row, byte channel, bool isBipolar, byte oldValue, byte newValue) {
+void gfx_drawDial(byte row, byte channel, bool isScalar, byte oldValue, byte newValue, const char* displayValue) {
   unsigned int x = gfx_getDialX(channel);
   unsigned int y = gfx_getDialY(row);
 
-  if (newValue != oldValue) {
-    // Clear existing line
-    gfx_drawValueLine(x, y, oldValue, LAYOUT_DIAL_RADIUS - 10, RA8875_BLACK);
-  };
+  // Clear existing line
+  gfx_drawValueLine(x, y, oldValue, LAYOUT_DIAL_RADIUS - 10, RA8875_BLACK);
   
-  // Draw value text
-  char buffer[5];
-  if (isBipolar) {
-    int dispVal = newValue / 2 - 64;
-    char sign = dispVal < 0 ? '-' : '+';
-    sprintf(buffer, "%c%02d", sign, abs(dispVal));
-  } else {
-    sprintf(buffer, "%03d", newValue / 2);
-  }
-  gfx_drawText(x - 22, y - 18, RA8875_TEXT_MD, RA8875_WHITE, buffer);
+  // Print display value
+  gfx_drawText(x - 22, y - 18, RA8875_TEXT_MD, RA8875_WHITE, displayValue);
 
-  // Draw value line
-  gfx_drawValueLine(x, y, newValue, LAYOUT_DIAL_RADIUS - 10, RA8875_RED);
+  if (isScalar) {
+    // Draw value line
+    gfx_drawValueLine(x, y, newValue, LAYOUT_DIAL_RADIUS - 10, RA8875_RED);
+  }
 }
 
 void gfx_drawParamName(byte row, const char* name) {
-  gfx_drawText(8, row == 0 ? LAYOUT_PARAM_Y : 426 - LAYOUT_PARAM_Y, RA8875_TEXT_LG, RA8875_LIGHT_GREY, name);
+  // Right-pad name to fully overwrite previous name
+  char buffer[11];
+  sprintf(buffer, "%-10s", name);
+  gfx_drawText(8, row == 0 ? LAYOUT_PARAM_Y : 426 - LAYOUT_PARAM_Y, RA8875_TEXT_LG, RA8875_LIGHT_GREY, buffer);
 }
 
-void gfx_drawRow(byte row, const char* paramName, bool isBipolar, const byte* oldValues, const byte* newValues) {
+void gfx_drawStaticElements(void) {
   unsigned int x;
-  unsigned int y = gfx_getDialY(row);
-  unsigned int yTriB = y + LAYOUT_DIAL_RADIUS;
-  unsigned int yTriT = y - LAYOUT_DIAL_RADIUS;
-  for (byte channel = 0; channel < CHANNEL_COUNT; channel++) {
-    gfx_drawDial(row, channel, isBipolar, oldValues[channel], newValues[channel]);
-    x = gfx_getDialX(channel);
-    gfx_tft.drawTriangle(x - 5, yTriB, x + 5, yTriB, x, yTriB - 10, RA8875_RED);
-    gfx_tft.drawTriangle(x - 5, yTriT, x + 5, yTriT, x, yTriT + 10, RA8875_RED);
-  }
-
-  gfx_drawParamName(row, paramName);
-}
-
-void gfx_drawChannelNumbers() {
-  int x;
-  int y;
+  unsigned int y;
+  unsigned int yChanNo;
+  unsigned int yTriB;
+  unsigned int yTriT;
   char buffer [2];
-  for (byte row = 0; row < 2; row++) {
-    y = gfx_getDialY(row);
-    y = row == 0 ? y + LAYOUT_DIAL_RADIUS + 3 : y - LAYOUT_DIAL_RADIUS - 35;
-    for (byte channel = 0; channel < CHANNEL_COUNT; channel++) {
-      x = gfx_getDialX(channel);
-      itoa(channel + 1, buffer, 10);
-      gfx_drawText(x - 10, y, RA8875_TEXT_MD, RA8875_LIGHT_GREY, buffer);
-    }
-  }
-}
 
-void gfx_drawBackground(void) {
+  // Draw horizontal dividers
   gfx_tft.drawFastHLine(0, LAYOUT_ROW_LINE_Y, 800, RA8875_LIGHT_GREY);
   gfx_tft.drawFastHLine(0, 480 - LAYOUT_ROW_LINE_Y, 800, RA8875_LIGHT_GREY);
+
+  // Draw row static elements
+  for (byte row = 0; row < 2; row++) {
+    y = gfx_getDialY(row);
+    yChanNo = row == 0 ? y + LAYOUT_DIAL_RADIUS + 3 : y - LAYOUT_DIAL_RADIUS - 35;
+    yTriB = y + LAYOUT_DIAL_RADIUS;
+    yTriT = y - LAYOUT_DIAL_RADIUS;
+    for (byte channel = 0; channel < CHANNEL_COUNT; channel++) {
+      x = gfx_getDialX(channel);
+
+      // Draw channel number
+      itoa(channel + 1, buffer, 10);
+      gfx_drawText(x - 10, yChanNo, RA8875_TEXT_MD, RA8875_LIGHT_GREY, buffer);
+
+      // Draw dial arrows
+      gfx_tft.drawTriangle(x - 5, yTriB, x + 5, yTriB, x, yTriB - 10, RA8875_RED);
+      gfx_tft.drawTriangle(x - 5, yTriT, x + 5, yTriT, x, yTriT + 10, RA8875_RED);
+    }
+  }
 }
 
 void gfx_setup(void) {
@@ -125,6 +117,5 @@ void gfx_setup(void) {
   gfx_tft.PWM1config(true, RA8875_PWM_CLK_DIV1024); // PWM output for backlight
   gfx_tft.PWM1out(255);
 
-  gfx_drawBackground();
-  gfx_drawChannelNumbers();
+  gfx_drawStaticElements();
 }
