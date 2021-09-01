@@ -66,22 +66,18 @@ void core_drawDial(byte row, byte channel, byte oldValue, byte newValue) {
   gfx_drawDial(row, channel, isScalar, oldValue, newValue, displayValue);
 }
 
-void core_updateValue(byte row, byte channel, byte action) {
+void core_updateValue(byte row, byte channel, int direction) {
   byte param = core_param[row];
   byte oldValue = core_state[param][channel];
   bool isFilterType = param == PARAM_EQ1_TYPE;
   byte step = isFilterType ? 1 : 2;
   byte limit = isFilterType ? 7 : 254;
-  byte newValue;
-  if (action == ACTION_INC) {
-    if (oldValue >= limit) return;
-    newValue = oldValue + step;
-  }
-  if (action == ACTION_DEC) {
-    if (oldValue == 0) return;
-    newValue = oldValue - step;
-  }
+  int newValue;
+
+  newValue = oldValue + step * direction;
+  if (newValue < 0 || newValue > limit) return;
   core_state[param][channel] = newValue;
+
   core_drawDial(row, channel, oldValue, newValue);
 }
 
@@ -96,45 +92,38 @@ void core_drawRow(byte row, byte prevParam) {
   }
 }
 
-void core_updateParam(byte row, byte action) {
+void core_updateParam(byte row, int direction) {
   byte oldParam = core_param[row];
   byte otherParam = core_param[1 - row];
-  byte newParam;
+  int newParam;
 
   // Increment or decrement row param, avoiding the other row's param
-  if (action == ACTION_INC) {
-    newParam = oldParam + 1;
-    if (newParam == otherParam) newParam++;
-    if (newParam >= PARAM_COUNT) return;
-  }
-  if (action == ACTION_DEC) {
-    if (oldParam == 0 || (oldParam == 1 && otherParam == 0)) return;
-    newParam = oldParam - 1;
-    if (newParam == otherParam) newParam--;
-  }
+  newParam = oldParam + direction;
+  if (newParam == otherParam) newParam += direction;
+  if (newParam < 0 || newParam >= PARAM_COUNT) return;
   core_param[row] = newParam;
 
   core_drawRow(row, oldParam);
 }
 
-void core_handleKnob(unsigned int code) {
-  byte action = code % 10;
-  byte knob = code * 0.1; // 1-based including param knob
-
+void core_handleEnc(byte enc, int action) {
   // For now handle only inc & dec
-  if (action > 1) { return; }
+  if (action == 0) return;
+  
+  // -1 or 1
+  int direction = action;
 
-  if (knob == 1) {
-    // Handle top param switch knob
-    core_updateParam(0, action);
-  } else if (knob == 10) {
-    // Handle bottom param switch knob
-    core_updateParam(1, action);
+  if (enc == 0) {
+    // Handle top param switch enc
+    core_updateParam(0, direction);
+  } else if (enc == 9) {
+    // Handle bottom param switch enc
+    core_updateParam(1, direction);
   } else {
-    // Handle value knobs
-    byte row = knob < 10 ? 0 : 1;
-    byte channel = knob - (row == 0 ? 2 : 11);
-    core_updateValue(row, channel, action);
+    // Handle value encs
+    byte row = enc < 9 ? 0 : 1;
+    byte channel = enc - (row == 0 ? 1 : 10);
+    core_updateValue(row, channel, direction);
   }
 }
 

@@ -1,15 +1,15 @@
 #include <Arduino.h>
 #include <core.hpp>
-#include <knobs.hpp>
+#include <encs.hpp>
 
 void setup() {
-  knobs_setup();
+  encs_setup();
   core_setup();
 }
 
 void loop() {
-  unsigned int code = knobs_read();
-  if (code != 0) {
-    core_handleKnob(code);
+  encs_read();
+  if (encs_newIndex > -1) {
+    core_handleEnc(encs_newIndex, encs_newAction);
   }
 }

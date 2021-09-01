@@ -1,16 +1,13 @@
 - MIDI output
 - MIDI input?
 - Persistence
-- Aux 1, 2, and 3-4
-- EQ 1-4
-- Ban duplicating top and bottom
-- Text alignment
+- Aux 1-4
+- EQ 2-4
 - Decibel display
 - Frequency display
 - Mono/Stereo channels
-- Min/Max indicator
 - Flash ES9
-- Channels 8-16
+- Channels 9-16
 - Mute
 - Solo
 - Show / hide params
