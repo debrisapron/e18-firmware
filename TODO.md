@@ -1,11 +1,14 @@
 - MIDI output
-- MIDI input?
-- Persistence
 - Aux 1-4
 - EQ 2-4
+- Only select EQ params if EQ active
+- Change EQ param names depending on filter type
+- Persistence
 - Decibel display
 - Frequency display
 - Mono/Stereo channels
+- Send all
+- MIDI input
 - Flash ES9
 - Channels 9-16
 - Mute

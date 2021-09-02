@@ -1,8 +1,6 @@
 #include "Arduino.h"
 #include "gfx.hpp"
-
-// #include <EEPROM.h>
-// #include "EEPROMAnything.h"
+#include "es9.hpp"
 
 #define STATUS_INIT 0
 #define STATUS_READY 1
@@ -79,6 +77,11 @@ void core_updateValue(byte row, byte channel, int direction) {
   core_state[param][channel] = newValue;
 
   core_drawDial(row, channel, oldValue, newValue);
+
+  if (param == PARAM_VOL) {
+    es9_setGain(channel + 1, 1, newValue / 2);
+    es9_setGain(channel + 1, 2, newValue / 2);
+  }
 }
 
 void core_drawRow(byte row, byte prevParam) {
@@ -129,17 +132,10 @@ void core_handleEnc(byte enc, int action) {
 
 void core_setup(void) {
   gfx_setup();
+  es9_setup();
 
   core_drawRow(0, core_param[0]);
   core_drawRow(1, core_param[1]);
 
   core_status = STATUS_READY;
 }
-
-  // for (int i = 50; i < 74; i++) 
-  // {
-  //   MIDI.sendNoteOn(i, 64, 1); 
-  //   delay(75); 
-  //   MIDI.sendNoteOff(i, 64, 1); 
-  //   delay(75); 
-  // }
