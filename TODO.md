@@ -1,9 +1,9 @@
-- MIDI output
-- Aux 1-4
-- EQ 2-4
-- Only select EQ params if EQ active
-- Change EQ param names depending on filter type
+- Aux
+- EQ
+- Only show EQ params if EQ active
 - Persistence
+- Switch to raw mix for gain
+- Encoder speed affects change rate
 - Decibel display
 - Frequency display
 - Mono/Stereo channels

@@ -1,23 +1,51 @@
 #include <MIDI.h>
 
-#define SYSEX_HEADER 0x00, 0x21, 0x27, 0x19
+#define SYSEX_4BYTE_HEADER 0x00, 0x21, 0x27, 0x19
 #define SYSEX_SET_VIRTUAL_MIX 0x34
+#define SYSEX_SET_FILTER 0x39
 
-MIDI_CREATE_INSTANCE(HardwareSerial, Serial1, midi1);
+// Move this to core
+// const byte es9_filterTypes[] = {
+//   0x0, // LP1 disabled
+//   0x9, // LSH
+//   0xD, // BND
+//   0xB, // HSH
+//   0x1, // LP1
+//   0x5, // LP2
+//   0x3, // HP1
+//   0x7  // HP2
+// };
+
+MIDI_CREATE_INSTANCE(HardwareSerial, Serial1, es9_midi1);
 
 void es9_setup(void) {
-  midi1.begin(MIDI_CHANNEL_OMNI);
+  es9_midi1.begin(MIDI_CHANNEL_OMNI);
 }
 
-// from: 1-8 = inputs 1-8, 9-14 = aux return 9-14, 15-16 = bus 1-2
+// from: 0-7 = inputs 1-8, 8-13 = aux return 9-14, 14-15 = bus 1-2
 // to: 
-//    (from 1-8)    1-2 = bus 1-2, 3-8 = aux send 1-6
-//    (from 9-16)   9-10 = bus 1-2, 11-12 = main out 1-2, 13-14 = phones 1-2
+//    (from 0-7)    0-1 = bus 1-2, 2-7 = aux send 1-6
+//    (from 8-15)   8-9 = bus 1-2, 10-11 = main out 1-2, 12-13 = phones 1-2
 void es9_setGain(byte from, byte to, byte gain) {
   // TODO Error handling
   // if (from < 9 && to > 8)
   // if (from > 8 && to < 9)
-  byte mixNo = ((to - 1) * 8) + ((from - 1) % 8);
-  byte data[] = {SYSEX_HEADER, SYSEX_SET_VIRTUAL_MIX, mixNo, gain};
-  midi1.sendSysEx(7, data);
+  byte mixNo = to * 8 + (from % 8);
+  byte data[] = {SYSEX_4BYTE_HEADER, SYSEX_SET_VIRTUAL_MIX, mixNo, gain};
+  es9_midi1.sendSysEx(7, data);
 }
+
+// void es9_setFilter(byte input, byte index, byte type, byte freq, byte q, byte gain) {
+//   byte data[] = {
+//     SYSEX_HEADER,
+//     SYSEX_SET_FILTER,
+//     input,
+//     index,
+//     es9_filterTypes[type],
+//     freq, 0x00, 0x00,
+//     q, 0x00, 0x00,
+//     gain, 0x00, 0x00
+//   };
+//   es9_midi1.sendSysEx(17, data);
+//   //F0 00 21 27 19 39 00 00 01 00 00 00 00 00 00 00 00 00 F7
+// }

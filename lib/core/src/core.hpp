@@ -15,16 +15,6 @@
 
 #define CHANNEL_COUNT 8
 
-byte core_status = STATUS_INIT;
-byte core_param[] = {PARAM_VOL, PARAM_PAN};
-byte core_state[][CHANNEL_COUNT] = {
-  {0, 0, 0, 0, 0, 0, 0, 0},
-  {128, 128, 128, 128, 128, 128, 128, 128},
-  {0, 0, 0, 0, 0, 0, 0, 0},
-  {0, 0, 0, 0, 0, 0, 0, 0},
-  {0, 0, 0, 0, 0, 0, 0, 0},
-  {0, 0, 0, 0, 0, 0, 0, 0}
-};
 const char *core_paramNames[] = {
   "VOL",
   "PAN",
@@ -44,24 +34,66 @@ const char *core_filterTypes[] = {
   "HP2"
 };
 
-void core_getDisplayValue(char* buffer, byte row, byte value) {
-  byte param = core_param[row];
-  if (param == PARAM_PAN) {
-    int dispVal = value / 2 - 64;
-    char sign = dispVal < 0 ? '-' : '+';
-    sprintf(buffer, "%c%02d", sign, abs(dispVal));
-  } else if (param == PARAM_EQ1_TYPE) {
-    sprintf(buffer, "%s", core_filterTypes[value]);
-  } else {
-    sprintf(buffer, "%03d", value / 2);
+byte core_status = STATUS_INIT;
+byte core_param[] = {PARAM_VOL, PARAM_PAN};
+byte core_state[][CHANNEL_COUNT] = {
+  {0, 0, 0, 0, 0, 0, 0, 0},
+  {128, 128, 128, 128, 128, 128, 128, 128},
+  {0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0}
+};
+
+void core_getDisplayValue(char* buffer, byte param, byte value) {
+  switch (param) {
+    case PARAM_PAN: {
+      int dispVal = value / 2 - 64;
+      char sign = dispVal < 0 ? '-' : '+';
+      sprintf(buffer, "%c%02d", sign, abs(dispVal));
+      break;
+    }
+    case PARAM_EQ1_TYPE: {
+      sprintf(buffer, "%s", core_filterTypes[value]);
+      break;
+    }
+    default: {
+      sprintf(buffer, "%03d", value / 2);
+      break;
+    }
   }
 }
 
 void core_drawDial(byte row, byte channel, byte oldValue, byte newValue) {
-  char displayValue[4];
-  bool isScalar = core_param[row] != PARAM_EQ1_TYPE;
-  core_getDisplayValue(displayValue, row, newValue);
-  gfx_drawDial(row, channel, isScalar, oldValue, newValue, displayValue);
+  char displayValueBuffer[4];
+  byte param = core_param[row];
+  bool isScalar = param != PARAM_EQ1_TYPE;
+  core_getDisplayValue(displayValueBuffer, param, newValue);
+  gfx_drawDial(row, channel, isScalar, oldValue, newValue, displayValueBuffer);
+}
+
+void core_setStereoVol(byte channel, byte vol, byte pan) {
+  // ES9 gain level has a perceptual curve built in so pan law is weird
+  float panRatio = pan / 255.0; // 0 - 1
+  byte gainLeft = vol * (1 - pow(panRatio, 5)) * 0.5;
+  byte gainRight = vol * (1 - pow(1 - panRatio, 5)) * 0.5;
+  es9_setGain(channel, 0, gainLeft);
+  es9_setGain(channel, 1, gainRight);
+}
+
+void core_updateHardware(byte param, byte channel, byte value) {
+  switch (param) {
+    case PARAM_VOL: {
+      byte pan = core_state[PARAM_PAN][channel];
+      core_setStereoVol(channel, value, pan);
+      break;
+    }
+    case PARAM_PAN: {
+      byte vol = core_state[PARAM_VOL][channel];
+      core_setStereoVol(channel, vol, value);
+      break;
+    }
+  }
 }
 
 void core_updateValue(byte row, byte channel, int direction) {
@@ -77,11 +109,7 @@ void core_updateValue(byte row, byte channel, int direction) {
   core_state[param][channel] = newValue;
 
   core_drawDial(row, channel, oldValue, newValue);
-
-  if (param == PARAM_VOL) {
-    es9_setGain(channel + 1, 1, newValue / 2);
-    es9_setGain(channel + 1, 2, newValue / 2);
-  }
+  core_updateHardware(param, channel, newValue);
 }
 
 void core_drawRow(byte row, byte prevParam) {
