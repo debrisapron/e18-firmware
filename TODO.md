@@ -1,19 +1,20 @@
 - Aux
 - EQ
 - Only show EQ params if EQ active
-- Persistence
-- Switch to raw mix for gain
-- Encoder speed affects change rate
 - Decibel display
 - Frequency display
-- Mono/Stereo channels
-- Send all
-- MIDI input
-- Flash ES9
-- Channels 9-16
+- Encoder speed affects change rate
 - Mute
 - Solo
+- Mono/Stereo channels
+- Flash ES9
+- Switch to raw mix for gain
+- Sync all ES9 params (kind of panic button)
+- Channels 9-16
+- Routing
+- Crossfader
 - Show / hide params
 - Assert on tft calls
 - Assert on MIDI calls
 - Icons for filter types
+- MIDI input

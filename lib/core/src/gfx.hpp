@@ -1,5 +1,6 @@
-#include "Adafruit_GFX.h"
-#include "Adafruit_RA8875.h"
+#include <Adafruit_GFX.h>
+#include <Adafruit_RA8875.h>
+#include "shared.h"
 
 #define RA8875_CS 10
 #define RA8875_RESET 9
@@ -11,15 +12,12 @@
 #define RA8875_TEXT_MD 1
 #define RA8875_TEXT_LG 2
 
-#define DEG2RAD 0.0174532925
-#define BYTE2DEG 1.41176470588
+#define BYTE_TO_DEG 1.41176470588
 
 #define LAYOUT_DIAL_RADIUS 45
 #define LAYOUT_DIAL_Y 50
 #define LAYOUT_ROW_LINE_Y 150
 #define LAYOUT_PARAM_Y 167
-
-#define CHANNEL_COUNT 8
 
 Adafruit_RA8875 gfx_tft = Adafruit_RA8875(RA8875_CS, RA8875_RESET);
 
@@ -44,7 +42,7 @@ void gfx_drawText(unsigned int x, unsigned int y, byte size, unsigned int color,
 
 // value param is 0-255 mapped to 180-540 degrees
 void gfx_drawValueLine(int xStart, int yStart, byte value, int length, int color) {
-  float rads = (value * BYTE2DEG + 180) * DEG2RAD; // convert value to radians
+  float rads = (value * BYTE_TO_DEG + 180) * DEG_TO_RAD; // convert value to radians
   int xEnd = xStart + length * sin(rads); // Ending x-coordinate offset & radius
   int yEnd = yStart - length * cos(rads); // Ending y-coordinate offset & radius
   gfx_tft.drawLine(xStart, yStart, xEnd, yEnd, color);
@@ -105,6 +103,11 @@ void gfx_drawStaticElements(void) {
   }
 }
 
+void gfx_start(void) {
+  gfx_tft.fillScreen(RA8875_BLACK);
+  gfx_drawStaticElements();
+}
+
 void gfx_setup(void) {
   // Start TFT
   bool ok = gfx_tft.begin(RA8875_800x480);
@@ -117,5 +120,5 @@ void gfx_setup(void) {
   gfx_tft.PWM1config(true, RA8875_PWM_CLK_DIV1024); // PWM output for backlight
   gfx_tft.PWM1out(255);
 
-  gfx_drawStaticElements();
+  gfx_drawText(100, 260, RA8875_TEXT_LG, RA8875_WHITE, "Initializing...");
 }

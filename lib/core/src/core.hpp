@@ -1,19 +1,14 @@
-#include "Arduino.h"
+#include <Arduino.h>
+#include "shared.h"
+#include "encs.hpp"
 #include "gfx.hpp"
 #include "es9.hpp"
+#include "eep.hpp"
 
 #define STATUS_INIT 0
 #define STATUS_READY 1
-
-#define ACTION_DEC 0
-#define ACTION_INC 1
-
-#define PARAM_VOL 0
-#define PARAM_PAN 1
-#define PARAM_EQ1_TYPE 2
-#define PARAM_COUNT 6
-
-#define CHANNEL_COUNT 8
+#define ACTIVE_TIMEOUT_MS 1000
+#define ULONG_MAX (0UL - 1UL)
 
 const char *core_paramNames[] = {
   "VOL",
@@ -35,15 +30,9 @@ const char *core_filterTypes[] = {
 };
 
 byte core_status = STATUS_INIT;
-byte core_param[] = {PARAM_VOL, PARAM_PAN};
-byte core_state[][CHANNEL_COUNT] = {
-  {0, 0, 0, 0, 0, 0, 0, 0},
-  {128, 128, 128, 128, 128, 128, 128, 128},
-  {0, 0, 0, 0, 0, 0, 0, 0},
-  {0, 0, 0, 0, 0, 0, 0, 0},
-  {0, 0, 0, 0, 0, 0, 0, 0},
-  {0, 0, 0, 0, 0, 0, 0, 0}
-};
+byte core_params[] = {PARAM_VOL, PARAM_PAN};
+e18State core_state;
+unsigned long core_lastActiveMs = 0; // When set to zero, never go idle
 
 void core_getDisplayValue(char* buffer, byte param, byte value) {
   switch (param) {
@@ -66,38 +55,14 @@ void core_getDisplayValue(char* buffer, byte param, byte value) {
 
 void core_drawDial(byte row, byte channel, byte oldValue, byte newValue) {
   char displayValueBuffer[4];
-  byte param = core_param[row];
+  byte param = core_params[row];
   bool isScalar = param != PARAM_EQ1_TYPE;
   core_getDisplayValue(displayValueBuffer, param, newValue);
   gfx_drawDial(row, channel, isScalar, oldValue, newValue, displayValueBuffer);
 }
 
-void core_setStereoVol(byte channel, byte vol, byte pan) {
-  // ES9 gain level has a perceptual curve built in so pan law is weird
-  float panRatio = pan / 255.0; // 0 - 1
-  byte gainLeft = vol * (1 - pow(panRatio, 5)) * 0.5;
-  byte gainRight = vol * (1 - pow(1 - panRatio, 5)) * 0.5;
-  es9_setGain(channel, 0, gainLeft);
-  es9_setGain(channel, 1, gainRight);
-}
-
-void core_updateHardware(byte param, byte channel, byte value) {
-  switch (param) {
-    case PARAM_VOL: {
-      byte pan = core_state[PARAM_PAN][channel];
-      core_setStereoVol(channel, value, pan);
-      break;
-    }
-    case PARAM_PAN: {
-      byte vol = core_state[PARAM_VOL][channel];
-      core_setStereoVol(channel, vol, value);
-      break;
-    }
-  }
-}
-
 void core_updateValue(byte row, byte channel, int direction) {
-  byte param = core_param[row];
+  byte param = core_params[row];
   byte oldValue = core_state[param][channel];
   bool isFilterType = param == PARAM_EQ1_TYPE;
   byte step = isFilterType ? 1 : 2;
@@ -109,11 +74,11 @@ void core_updateValue(byte row, byte channel, int direction) {
   core_state[param][channel] = newValue;
 
   core_drawDial(row, channel, oldValue, newValue);
-  core_updateHardware(param, channel, newValue);
+  es9_setParam(param, channel, newValue, core_state);
 }
 
 void core_drawRow(byte row, byte prevParam) {
-  byte param = core_param[row];
+  byte param = core_params[row];
 
   gfx_drawParamName(row, core_paramNames[param]);
 
@@ -124,15 +89,15 @@ void core_drawRow(byte row, byte prevParam) {
 }
 
 void core_updateParam(byte row, int direction) {
-  byte oldParam = core_param[row];
-  byte otherParam = core_param[1 - row];
+  byte oldParam = core_params[row];
+  byte otherParam = core_params[1 - row];
   int newParam;
 
   // Increment or decrement row param, avoiding the other row's param
   newParam = oldParam + direction;
   if (newParam == otherParam) newParam += direction;
   if (newParam < 0 || newParam >= PARAM_COUNT) return;
-  core_param[row] = newParam;
+  core_params[row] = newParam;
 
   core_drawRow(row, oldParam);
 }
@@ -159,11 +124,44 @@ void core_handleEnc(byte enc, int action) {
 }
 
 void core_setup(void) {
+  // Start graphics & show splash
   gfx_setup();
+
+  // Get state from EEPROM
+  eep_load(core_state);
+
+  // Start encoders
+  encs_setup();
+
+  // Wait a second for ES9 to be ready
+  delay(1000);
+
+  // Start MIDI & sync state with ES9
   es9_setup();
+  es9_setAllParams(core_state);
 
-  core_drawRow(0, core_param[0]);
-  core_drawRow(1, core_param[1]);
+  // Clear splash & draw static UI elements
+  gfx_start();
 
+  // Draw top & bottom dial rows
+  core_drawRow(0, core_params[0]);
+  core_drawRow(1, core_params[1]);
+
+  // LET'S ROCK
   core_status = STATUS_READY;
+}
+
+void core_loop(void) {
+  encs_read();
+
+  if (encs_newIndex > -1) {
+    core_handleEnc(encs_newIndex, encs_newAction);
+    core_lastActiveMs = millis();
+    return;
+  }
+
+  if (core_lastActiveMs != 0 && millis() > core_lastActiveMs + ACTIVE_TIMEOUT_MS) {
+    core_lastActiveMs = 0;
+    eep_save(core_state);
+  }
 }
