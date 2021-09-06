@@ -1,6 +1,5 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_RA8875.h>
-#include "shared.h"
 
 #define RA8875_CS 10
 #define RA8875_RESET 9
@@ -20,8 +19,6 @@
 #define LAYOUT_PARAM_Y 167
 
 Adafruit_RA8875 gfx_tft = Adafruit_RA8875(RA8875_CS, RA8875_RESET);
-
-// extern void __log(const char* name, const char* value);
 
 unsigned int gfx_getDialX(byte channel) {
   return (channel * 100) + 50;

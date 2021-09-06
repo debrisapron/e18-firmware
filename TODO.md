@@ -1,4 +1,4 @@
-- EQ1
+- Save params in EEPROM
 - Rest of auxes & eqs
 - Only show EQ params if EQ active
 - Decibel display

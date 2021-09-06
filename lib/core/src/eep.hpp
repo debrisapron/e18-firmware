@@ -1,6 +1,5 @@
 #include <Arduino.h>
 #include <EEPROM.h>
-#include "shared.h"
 
 #define E18_UID 0xB0, 0xF5, 0x66, 0x82
 #define HEADER_LEN 5

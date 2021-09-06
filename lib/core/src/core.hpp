@@ -127,8 +127,8 @@ void core_setup(void) {
   gfx_start();
 
   // Draw top & bottom dial rows
-  core_drawRow(ROW_TOP, core_params[ROW_TOP]);
-  core_drawRow(ROW_BOTTOM, core_params[ROW_BOTTOM]);
+  core_drawRow(ROW_TOP, core_paramIds[ROW_TOP]);
+  core_drawRow(ROW_BOTTOM, core_paramIds[ROW_BOTTOM]);
 
   // LET'S ROCK
   core_status = STATUS_READY;

@@ -4,6 +4,8 @@
 #define SYSEX_SET_VIRTUAL_MIX 0x34
 #define SYSEX_SET_FILTER 0x39
 
+#define FREQ_MAX 0x00017F7Ful
+
 #define MASTER_CHANNEL 0
 #define AUX1_CHANNEL 2
 
@@ -26,20 +28,33 @@ void es9_setGain(byte from, byte to, byte gain) {
   es9_midi1.sendSysEx(7, data);
 }
 
-// void es9_setFilter(byte input, byte index, byte type, byte freq, byte q, byte gain) {
-//   byte data[] = {
-//     SYSEX_HEADER,
-//     SYSEX_SET_FILTER,
-//     input,
-//     index,
-//     es9_filterTypes[type],
-//     freq, 0x00, 0x00,
-//     q, 0x00, 0x00,
-//     gain, 0x00, 0x00
-//   };
-//   es9_midi1.sendSysEx(17, data);
-//   //F0 00 21 27 19 39 00 00 01 00 00 00 00 00 00 00 00 00 F7
-// }
+// Takes a byte from 0-255 & returns the three-byte array the ES9 uses for hi-res values
+void es9_getThreeByteValue(byte out[3], byte v) {
+  unsigned int _v = (v / 255.0) * 32767;
+  out[0] = (_v >> 14) & 0x03;
+  out[1] = (_v >> 7) & 0x7F;
+  out[2] = _v & 0x7F;
+}
+
+void es9_setFilter(byte channel, byte index, byte typeId, byte freq, byte q, byte gain) {
+  byte freqBytes[3];
+  es9_getThreeByteValue(freqBytes, freq);
+  byte qBytes[3];
+  es9_getThreeByteValue(qBytes, q);
+  byte gainBytes[3];
+  es9_getThreeByteValue(gainBytes, gain);
+  byte data[] = {
+    SYSEX_4BYTE_HEADER,
+    SYSEX_SET_FILTER,
+    channel,
+    index,
+    filterTypes[typeId].es9Id,
+    freqBytes[0], freqBytes[1], freqBytes[2],
+    qBytes[0], qBytes[1], qBytes[2],
+    gainBytes[0], gainBytes[1], gainBytes[2],
+  };
+  es9_midi1.sendSysEx(17, data);
+}
 
 void es9_setStereoVol(byte channel, byte vol, byte pan, byte dest) {
   // ES9 gain level has a perceptual curve built in so pan law is weird
@@ -68,6 +83,16 @@ void es9_setParam(byte paramId, byte channel, E18State state) {
       aux1Vol = aux1Vol * (vol / 255.0);
       es9_setStereoVol(channel, aux1Vol, aux1Pan, AUX1_CHANNEL);
       break;
+    }
+    case PARAM_EQ1_TYPE:
+    case PARAM_EQ1_FREQ:
+    case PARAM_EQ1_GAIN:
+    case PARAM_EQ1_Q: {
+      byte typeId = state[PARAM_EQ1_TYPE][channel];
+      byte freq = state[PARAM_EQ1_FREQ][channel];
+      byte gain = state[PARAM_EQ1_GAIN][channel];
+      byte q = state[PARAM_EQ1_Q][channel];
+      es9_setFilter(channel, 0, typeId, freq, q, gain);
     }
   }
 }
