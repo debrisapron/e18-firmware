@@ -4,17 +4,8 @@
 #define SYSEX_SET_VIRTUAL_MIX 0x34
 #define SYSEX_SET_FILTER 0x39
 
-// Move this to core
-// const byte es9_filterTypes[] = {
-//   0x0, // LP1 disabled
-//   0x9, // LSH
-//   0xD, // BND
-//   0xB, // HSH
-//   0x1, // LP1
-//   0x5, // LP2
-//   0x3, // HP1
-//   0x7  // HP2
-// };
+#define MASTER_CHANNEL 0
+#define AUX1_CHANNEL 2
 
 MIDI_CREATE_INSTANCE(HardwareSerial, Serial1, es9_midi1);
 
@@ -50,32 +41,39 @@ void es9_setGain(byte from, byte to, byte gain) {
 //   //F0 00 21 27 19 39 00 00 01 00 00 00 00 00 00 00 00 00 F7
 // }
 
-void es9_setStereoVol(byte channel, byte vol, byte pan) {
+void es9_setStereoVol(byte channel, byte vol, byte pan, byte dest) {
   // ES9 gain level has a perceptual curve built in so pan law is weird
   float panRatio = pan / 255.0; // 0 - 1
   byte gainLeft = vol * (1 - pow(panRatio, 5)) * 0.5;
   byte gainRight = vol * (1 - pow(1 - panRatio, 5)) * 0.5;
-  es9_setGain(channel, 0, gainLeft);
-  es9_setGain(channel, 1, gainRight);
+  es9_setGain(channel, dest, gainLeft);
+  es9_setGain(channel, dest + 1, gainRight);
 }
 
-void es9_setParam(byte param, byte channel, byte value, e18State state) {
-  switch (param) {
-    case PARAM_VOL: {
-      byte pan = state[PARAM_PAN][channel];
-      es9_setStereoVol(channel, value, pan);
-      break;
-    }
-    case PARAM_PAN: {
+void es9_setParam(byte paramId, byte channel, E18State state) {
+  switch (paramId) {
+    case PARAM_VOL:
+    case PARAM_PAN:
+    case PARAM_AUX1: 
+    case PARAM_AUX1_PAN: {
+      // Route channel to master
       byte vol = state[PARAM_VOL][channel];
-      es9_setStereoVol(channel, vol, value);
+      byte pan = state[PARAM_PAN][channel];
+      es9_setStereoVol(channel, vol, pan, MASTER_CHANNEL);
+
+      // Route channel to aux1
+      byte aux1Vol = state[PARAM_AUX1][channel];
+      byte aux1Pan = state[PARAM_AUX1_PAN][channel];
+      // Simulate post-fader routing by multiplying by vol
+      aux1Vol = aux1Vol * (vol / 255.0);
+      es9_setStereoVol(channel, aux1Vol, aux1Pan, AUX1_CHANNEL);
       break;
     }
   }
 }
 
-void es9_setAllParams(e18State state) {
+void es9_setAllParams(E18State state) {
   for (byte channel = 0; channel < CHANNEL_COUNT; channel++) {
-    es9_setParam(PARAM_VOL, channel, state[PARAM_VOL][channel], state);
+    es9_setParam(PARAM_VOL, channel, state);
   }
 }

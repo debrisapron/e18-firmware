@@ -1,5 +1,5 @@
-- Aux
-- EQ
+- EQ1
+- Rest of auxes & eqs
 - Only show EQ params if EQ active
 - Decibel display
 - Frequency display
@@ -8,6 +8,8 @@
 - Solo
 - Mono/Stereo channels
 - Flash ES9
+- Saving-to-EEPROM indicator
+- Save param selection
 - Switch to raw mix for gain
 - Sync all ES9 params (kind of panic button)
 - Channels 9-16
