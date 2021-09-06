@@ -12,7 +12,7 @@
 #define ULONG_MAX (0UL - 1UL)
 
 byte core_status = STATUS_INIT;
-byte core_paramIds[] = {PARAM_VOL, PARAM_PAN};
+byte core_paramIds[2];
 E18State core_state;
 unsigned long core_lastActiveMs = 0; // When set to zero, never go idle
 
@@ -111,7 +111,7 @@ void core_setup(void) {
   gfx_setup();
 
   // Get state from EEPROM
-  eep_load(core_state);
+  eep_load(core_state, core_paramIds);
 
   // Start encoders
   encs_setup();
@@ -145,6 +145,6 @@ void core_loop(void) {
 
   if (core_lastActiveMs != 0 && millis() > core_lastActiveMs + ACTIVE_TIMEOUT_MS) {
     core_lastActiveMs = 0;
-    eep_save(core_state);
+    eep_save(core_state, core_paramIds);
   }
 }

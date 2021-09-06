@@ -1,5 +1,3 @@
-#define E18_VERSION 2
-
 #define CHANNEL_COUNT 8
 
 #define ROW_TOP 0
