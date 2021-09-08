@@ -14,8 +14,8 @@ extern E18State core_state;
 extern char __es9_sysexMessages[100][30];
 extern byte __es9_idx;
 
-void setUp(void) {
-    __es9_idx = 0; // Reset es9 mock
+void tearDown(void) {
+    __es9_idx = 100; // Disable es9 mock recording after every test
 } 
 
 void test_setup(void) {
@@ -48,7 +48,7 @@ void test_decrementValue(void) {
 }
 
 void test_changeSelectedParam(void) {
-    // Switch bottom row from volume to EQ type
+    // Switch bottom row from volume to EQ1 type
     core_handleEnc(9, 1);
     delay(100);
     // It should skip pan
@@ -57,7 +57,7 @@ void test_changeSelectedParam(void) {
     delay(100);
     TEST_ASSERT_EQUAL(0, core_paramIds[1]);
 
-    // Switch top row from pan to EQ type
+    // Switch top row from pan to EQ1 type
     core_handleEnc(0, 1);
     delay(100);
     TEST_ASSERT_EQUAL(2, core_paramIds[0]);
@@ -67,6 +67,7 @@ void test_changeSelectedParam(void) {
 }
 
 void test_incrementEqType(void) {
+    __es9_idx = 0; // Activate es9 mock recording
     core_handleEnc(0, 1);
     for (int i = 0; i < 10; i++) {
         core_handleEnc(1, 1);
@@ -79,6 +80,7 @@ void test_incrementEqType(void) {
 }
 
 void test_setupWithLoadFromEEPROM(void) {
+    __es9_idx = 0; // Activate es9 mock recording
     __eep_data = __EEP_DATA;
     core_setup();
     TEST_ASSERT_EQUAL_MESSAGE(2, core_state[0][0], "Vol 0 should be 2");
@@ -96,6 +98,7 @@ void test_setupWithLoadFromEEPROM(void) {
 
 void setup() {
     delay(2000);
+    __mock_eep_setup();
     UNITY_BEGIN();
     RUN_TEST(test_setup);
     RUN_TEST(test_incrementValue);

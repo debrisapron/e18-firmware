@@ -1,4 +1,4 @@
-#define EEP_VERSION 5
+#define EEP_VERSION 6
 #define EEP_UID 0xB0, 0xF5, 0x66, 0x82
 #define HEADER_LEN 5
 
@@ -17,7 +17,7 @@ void eep_load(E18State state, byte rowParams[2]) {
     rowParams[1] = PARAM_VOL;
     for (byte paramId = 0; paramId < PARAM_COUNT; paramId++) {
       for (byte channel = 0; channel < CHANNEL_COUNT; channel++) {
-        state[paramId][channel] = (paramId == PARAM_PAN || paramId == PARAM_AUX1_PAN) ? 128 : 0;
+        state[paramId][channel] = (params[paramId].displayType == PARAM_KIND_PAN) ? 128 : 0;
       }
     }
     return;

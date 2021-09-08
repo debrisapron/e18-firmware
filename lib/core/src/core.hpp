@@ -1,23 +1,24 @@
 #define STARTUP_WAIT 1000
+#define ACTIVE_TIMEOUT_MS 1000
+
 #define STATUS_INIT 0
 #define STATUS_READY 1
-#define ACTIVE_TIMEOUT_MS 1000
+#define PARAM_FILTER_TYPE_COUNT 8
 
 byte core_status = STATUS_INIT;
 byte core_paramIds[2];
 E18State core_state;
 unsigned long core_lastActiveMs = 0; // When set to zero, never go idle
 
-void core_getDisplayValue(char* buffer, byte paramId, byte value) {
-  switch (paramId) {
-    case PARAM_PAN:
-    case PARAM_AUX1_PAN: {
+void core_getDisplayValue(char* buffer, byte displayType, byte value) {
+  switch (displayType) {
+    case PARAM_KIND_PAN: {
       int dispVal = value / 2 - 64;
       char sign = dispVal < 0 ? '-' : '+';
       sprintf(buffer, "%c%02d", sign, abs(dispVal));
       break;
     }
-    case PARAM_EQ1_TYPE: {
+    case PARAM_KIND_FILTER_TYPE: {
       sprintf(buffer, "%s", filterTypes[value].name);
       break;
     }
@@ -31,17 +32,18 @@ void core_getDisplayValue(char* buffer, byte paramId, byte value) {
 void core_drawDial(byte row, byte channel, byte oldValue, byte newValue) {
   char displayValueBuffer[4];
   byte paramId = core_paramIds[row];
-  bool isScalar = paramId != PARAM_EQ1_TYPE;
-  core_getDisplayValue(displayValueBuffer, paramId, newValue);
+  byte displayType = params[paramId].displayType;
+  bool isScalar = displayType != PARAM_KIND_FILTER_TYPE;
+  core_getDisplayValue(displayValueBuffer, displayType, newValue);
   gfx_drawDial(row, channel, isScalar, oldValue, newValue, displayValueBuffer);
 }
 
 void core_updateValue(byte row, byte channel, int direction) {
   byte paramId = core_paramIds[row];
   byte oldValue = core_state[paramId][channel];
-  bool isFilterType = paramId == PARAM_EQ1_TYPE;
+  bool isFilterType = params[paramId].displayType == PARAM_KIND_FILTER_TYPE;
   byte step = isFilterType ? 1 : 2;
-  byte limit = isFilterType ? 7 : 254;
+  byte limit = isFilterType ? (FILTER_TYPE_COUNT - 1) : 254;
   int newValue;
 
   newValue = oldValue + step * direction;
@@ -49,7 +51,7 @@ void core_updateValue(byte row, byte channel, int direction) {
   core_state[paramId][channel] = newValue;
 
   core_drawDial(row, channel, oldValue, newValue);
-  es9_setParam(paramId, channel, core_state);
+  es9_sendParam(paramId, channel, core_state);
 }
 
 void core_drawRow(byte row, byte prevParamId) {
@@ -112,8 +114,7 @@ void core_setup(void) {
   delay(STARTUP_WAIT);
 
   // Start MIDI & sync state with ES9
-  es9_setup();
-  es9_setAllParams(core_state);
+  es9_setup(core_state);
 
   // Clear splash & draw static UI elements
   gfx_start();

@@ -3,28 +3,19 @@
 #define ROW_TOP 0
 #define ROW_BOTTOM 1
 
-#define PARAM_COUNT 8
+#define PARAM_COUNT 24
 #define PARAM_VOL 0
 #define PARAM_PAN 1
-#define PARAM_EQ1_TYPE 2
-#define PARAM_EQ1_FREQ 3
-#define PARAM_EQ1_GAIN 4
-#define PARAM_EQ1_Q 5
-#define PARAM_AUX1 6
-#define PARAM_AUX1_PAN 7
 
-// #define PARAM_KIND_GAIN 0
-// #define PARAM_KIND_PAN 1
-// #define PARAM_KIND_EQ_TYPE 2
-// #define PARAM_KIND_EQ_FREQ 3
-// #define PARAM_KIND_EQ_GAIN 4
-// #define PARAM_KIND_EQ_Q 4
+#define PARAM_KIND_DEFAULT 0
+#define PARAM_KIND_PAN 1
+#define PARAM_KIND_FILTER_TYPE 2
 
 #define FILTER_TYPE_COUNT 8
 
 typedef struct {
   const char* name;
-  // const byte kind;
+  const byte displayType;
 } Param;
 
 typedef struct {
@@ -33,14 +24,30 @@ typedef struct {
 } FilterType;
 
 const Param params[PARAM_COUNT] = {
-  { "VOL" }, // PARAM_KIND_GAIN },
-  { "PAN" }, // PARAM_KIND_PAN },
-  { "EQ1 TYPE" }, // PARAM_KIND_EQ_TYPE },
-  { "EQ1 FREQ" }, // PARAM_KIND_EQ_FREQ },
-  { "EQ1 GAIN" }, // PARAM_KIND_EQ_GAIN },
-  { "EQ1 Q" }, // PARAM_KIND_EQ_Q },
-  { "AUX1" }, // PARAM_KIND_GAIN },
-  { "AUX1 PAN" }, // PARAM_KIND_PAN }
+  { "VOL" },
+  { "PAN", PARAM_KIND_PAN },
+  { "EQ1 TYPE", PARAM_KIND_FILTER_TYPE },
+  { "EQ1 FREQ" },
+  { "EQ1 GAIN" },
+  { "EQ1 Q" },
+  { "EQ2 TYPE", PARAM_KIND_FILTER_TYPE },
+  { "EQ2 FREQ" },
+  { "EQ2 GAIN" },
+  { "EQ2 Q" },
+  { "EQ3 TYPE", PARAM_KIND_FILTER_TYPE },
+  { "EQ3 FREQ" },
+  { "EQ3 GAIN" },
+  { "EQ3 Q" },
+  { "EQ4 TYPE", PARAM_KIND_FILTER_TYPE },
+  { "EQ4 FREQ" },
+  { "EQ4 GAIN" },
+  { "EQ4 Q" },
+  { "AUX1" },
+  { "AUX1 PAN", PARAM_KIND_PAN },
+  { "AUX2" },
+  { "AUX2 PAN", PARAM_KIND_PAN },
+  { "AUX3" },
+  { "AUX3 PAN", PARAM_KIND_PAN }
 };
 
 const FilterType filterTypes[FILTER_TYPE_COUNT] = {
@@ -64,9 +71,8 @@ void gfx_drawParamName(byte row, const char* name);
 void eep_load(E18State state, byte rowParams[2]);
 void eep_save(E18State state, byte rowParams[2]);
 
-void es9_setup(void);
-void es9_setAllParams(E18State state);
-void es9_setParam(byte paramId, byte channel, E18State state);
+void es9_setup(E18State state);
+void es9_sendParam(byte paramId, byte channel, E18State state);
 
 void encs_setup(void);
 void encs_read(void);
