@@ -2,16 +2,12 @@
 // https://github.com/j-bellavance/CommonBusEncoders
 // but much stupider.
 
-#include <Arduino.h>
-
 #define BUS_A_PIN 23
 #define BUS_B_PIN 25
 // #define BUS_S_PIN 49
 
 const byte encs_pin[] = {34, 32, 30, 28, 26, 24, 22, 4, 5, 36, 38, 40, 42, 44, 46, 48, 7, 6};
 int encs_lastA[] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
-int encs_newIndex = -1;
-int encs_newAction = 0;
 
 void encs_setup(void) {
   pinMode(BUS_A_PIN, INPUT_PULLUP);

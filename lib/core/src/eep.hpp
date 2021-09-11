@@ -1,6 +1,3 @@
-#include <Arduino.h>
-#include <EEPROM.h>
-
 #define EEP_VERSION 5
 #define EEP_UID 0xB0, 0xF5, 0x66, 0x82
 #define HEADER_LEN 5

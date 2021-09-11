@@ -1,5 +1,3 @@
-#include <MIDI.h>
-
 #define SYSEX_4BYTE_HEADER 0x00, 0x21, 0x27, 0x19
 #define SYSEX_SET_VIRTUAL_MIX 0x34
 #define SYSEX_SET_FILTER 0x39
@@ -10,10 +8,6 @@
 #define AUX1_CHANNEL 2
 
 MIDI_CREATE_INSTANCE(HardwareSerial, Serial1, es9_midi1);
-
-void es9_setup(void) {
-  es9_midi1.begin(MIDI_CHANNEL_OMNI);
-}
 
 // from: 0-7 = inputs 1-8, 8-13 = aux return 9-14, 14-15 = bus 1-2
 // to: 
@@ -101,4 +95,8 @@ void es9_setAllParams(E18State state) {
   for (byte channel = 0; channel < CHANNEL_COUNT; channel++) {
     es9_setParam(PARAM_VOL, channel, state);
   }
+}
+
+void es9_setup(void) {
+  es9_midi1.begin(MIDI_CHANNEL_OMNI);
 }

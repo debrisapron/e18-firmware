@@ -12,10 +12,9 @@
 - Switch to raw mix for gain
 - Sync all ES9 params (kind of panic button)
 - Channels 9-16
-- Routing
+- Advanced routing
 - Crossfader
 - Show / hide params
 - Assert on tft calls
-- Assert on MIDI calls
 - Icons for filter types
 - MIDI input

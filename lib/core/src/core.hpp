@@ -1,15 +1,7 @@
-#include <Arduino.h>
-#include "shared.h"
-#include "encs.hpp"
-#include "gfx.hpp"
-#include "es9.hpp"
-#include "eep.hpp"
-
 #define STARTUP_WAIT 1000
 #define STATUS_INIT 0
 #define STATUS_READY 1
 #define ACTIVE_TIMEOUT_MS 1000
-#define ULONG_MAX (0UL - 1UL)
 
 byte core_status = STATUS_INIT;
 byte core_paramIds[2];

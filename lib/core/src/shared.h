@@ -55,3 +55,20 @@ const FilterType filterTypes[FILTER_TYPE_COUNT] = {
 };
 
 typedef byte E18State[PARAM_COUNT][CHANNEL_COUNT];
+
+void gfx_setup(void);
+void gfx_start(void);
+void gfx_drawDial(byte row, byte channel, bool isScalar, byte oldValue, byte newValue, const char* displayValue);
+void gfx_drawParamName(byte row, const char* name);
+
+void eep_load(E18State state, byte rowParams[2]);
+void eep_save(E18State state, byte rowParams[2]);
+
+void es9_setup(void);
+void es9_setAllParams(E18State state);
+void es9_setParam(byte paramId, byte channel, E18State state);
+
+void encs_setup(void);
+void encs_read(void);
+int encs_newIndex;
+int encs_newAction;
