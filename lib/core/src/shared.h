@@ -10,12 +10,15 @@
 #define PARAM_KIND_DEFAULT 0
 #define PARAM_KIND_PAN 1
 #define PARAM_KIND_FILTER_TYPE 2
+#define PARAM_KIND_FILTER_FREQ 3
+#define PARAM_KIND_FILTER_GAIN 4
+#define PARAM_KIND_FILTER_Q 5
 
 #define FILTER_TYPE_COUNT 8
 
 typedef struct {
   const char* name;
-  const byte displayType;
+  const byte kind;
 } Param;
 
 typedef struct {
@@ -27,21 +30,21 @@ const Param params[PARAM_COUNT] = {
   { "VOL" },
   { "PAN", PARAM_KIND_PAN },
   { "EQ1 TYPE", PARAM_KIND_FILTER_TYPE },
-  { "EQ1 FREQ" },
-  { "EQ1 GAIN" },
-  { "EQ1 Q" },
+  { "EQ1 FREQ", PARAM_KIND_FILTER_FREQ },
+  { "EQ1 GAIN", PARAM_KIND_FILTER_GAIN },
+  { "EQ1 Q", PARAM_KIND_FILTER_Q },
   { "EQ2 TYPE", PARAM_KIND_FILTER_TYPE },
-  { "EQ2 FREQ" },
-  { "EQ2 GAIN" },
-  { "EQ2 Q" },
+  { "EQ2 FREQ", PARAM_KIND_FILTER_FREQ },
+  { "EQ2 GAIN", PARAM_KIND_FILTER_GAIN },
+  { "EQ2 Q", PARAM_KIND_FILTER_Q },
   { "EQ3 TYPE", PARAM_KIND_FILTER_TYPE },
-  { "EQ3 FREQ" },
-  { "EQ3 GAIN" },
-  { "EQ3 Q" },
+  { "EQ3 FREQ", PARAM_KIND_FILTER_FREQ },
+  { "EQ3 GAIN", PARAM_KIND_FILTER_GAIN },
+  { "EQ3 Q", PARAM_KIND_FILTER_Q },
   { "EQ4 TYPE", PARAM_KIND_FILTER_TYPE },
-  { "EQ4 FREQ" },
-  { "EQ4 GAIN" },
-  { "EQ4 Q" },
+  { "EQ4 FREQ", PARAM_KIND_FILTER_FREQ },
+  { "EQ4 GAIN", PARAM_KIND_FILTER_GAIN },
+  { "EQ4 Q", PARAM_KIND_FILTER_Q },
   { "AUX1" },
   { "AUX1 PAN", PARAM_KIND_PAN },
   { "AUX2" },
@@ -65,7 +68,7 @@ typedef byte E18State[PARAM_COUNT][CHANNEL_COUNT];
 
 void gfx_setup(void);
 void gfx_start(void);
-void gfx_drawDial(byte row, byte channel, bool isScalar, byte oldValue, byte newValue, const char* displayValue);
+void gfx_drawDial(byte row, byte channel, bool isScalar, bool isDisabled, byte oldValue, byte newValue, const char* displayValue);
 void gfx_drawParamName(byte row, const char* name);
 
 void eep_load(E18State state, byte rowParams[2]);

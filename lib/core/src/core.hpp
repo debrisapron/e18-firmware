@@ -10,8 +10,14 @@ byte core_paramIds[2];
 E18State core_state;
 unsigned long core_lastActiveMs = 0; // When set to zero, never go idle
 
-void core_getDisplayValue(char* buffer, byte displayType, byte value) {
-  switch (displayType) {
+void core_getDisplayValue(char* buffer, byte paramId, bool isDisabled, byte value) {
+  if (isDisabled) {
+    sprintf(buffer, "---");
+    return;
+  }
+
+  byte kind = params[paramId].kind;
+  switch (kind) {
     case PARAM_KIND_PAN: {
       int dispVal = value / 2 - 64;
       char sign = dispVal < 0 ? '-' : '+';
@@ -29,19 +35,33 @@ void core_getDisplayValue(char* buffer, byte displayType, byte value) {
   }
 }
 
+bool core_getIsParamDisabled(byte paramId, byte channel) {
+  byte parentParamId;
+  switch(params[paramId].kind) {
+    case PARAM_KIND_FILTER_FREQ: parentParamId = paramId - 1; break;
+    case PARAM_KIND_FILTER_GAIN: parentParamId = paramId - 2; break;
+    case PARAM_KIND_FILTER_Q: parentParamId = paramId - 3; break;
+    default: parentParamId = 0; break;
+  }
+  return parentParamId && core_state[parentParamId][channel] == 0;
+}
+
 void core_drawDial(byte row, byte channel, byte oldValue, byte newValue) {
   char displayValueBuffer[4];
   byte paramId = core_paramIds[row];
-  byte displayType = params[paramId].displayType;
-  bool isScalar = displayType != PARAM_KIND_FILTER_TYPE;
-  core_getDisplayValue(displayValueBuffer, displayType, newValue);
-  gfx_drawDial(row, channel, isScalar, oldValue, newValue, displayValueBuffer);
+  byte kind = params[paramId].kind;
+  bool isScalar = kind != PARAM_KIND_FILTER_TYPE;
+  bool isDisabled = core_getIsParamDisabled(paramId, channel);
+  core_getDisplayValue(displayValueBuffer, kind, isDisabled, newValue);
+  gfx_drawDial(row, channel, isScalar, isDisabled, oldValue, newValue, displayValueBuffer);
 }
 
 void core_updateValue(byte row, byte channel, int direction) {
   byte paramId = core_paramIds[row];
+  if (core_getIsParamDisabled(paramId, channel)) return;
+  
   byte oldValue = core_state[paramId][channel];
-  bool isFilterType = params[paramId].displayType == PARAM_KIND_FILTER_TYPE;
+  bool isFilterType = params[paramId].kind == PARAM_KIND_FILTER_TYPE;
   byte step = isFilterType ? 1 : 2;
   byte limit = isFilterType ? (FILTER_TYPE_COUNT - 1) : 254;
   int newValue;
@@ -52,6 +72,14 @@ void core_updateValue(byte row, byte channel, int direction) {
 
   core_drawDial(row, channel, oldValue, newValue);
   es9_sendParam(paramId, channel, core_state);
+  if (isFilterType && !oldValue != !newValue) {
+    // If we're bypassing or activating an EQ, the other row might be showing
+    // one of the EQs params and need to be disabled or enabled
+    byte otherRow = 1 - row;
+    byte otherParamId = core_paramIds[otherRow];
+    byte otherRowValue = core_state[otherParamId][channel];
+    core_drawDial(otherRow, channel, otherRowValue, otherRowValue);
+  }
 }
 
 void core_drawRow(byte row, byte prevParamId) {

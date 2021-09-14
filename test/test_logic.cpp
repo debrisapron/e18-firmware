@@ -30,12 +30,15 @@ void test_setup(void) {
 }
 
 void test_incrementValue(void) {
+    __es9_idx = 0; // Activate es9 mock recording
     for (int i = 0; i < 10; i++) {
         core_handleEnc(10, 1);
         delay(100);
     }
     // It should go up 2 for every click
     TEST_ASSERT_EQUAL_MESSAGE(20, core_state[0][0], "Vol 0 should be 22");
+    TEST_ASSERT_EQUAL_CHAR_ARRAY("34 00 09", __es9_sysexMessages[72], 8);
+    TEST_ASSERT_EQUAL_CHAR_ARRAY("34 08 09", __es9_sysexMessages[73], 8);
 }
 
 void test_decrementValue(void) {
@@ -68,7 +71,7 @@ void test_changeSelectedParam(void) {
 
 void test_incrementEqType(void) {
     __es9_idx = 0; // Activate es9 mock recording
-    core_handleEnc(0, 1);
+    core_handleEnc(0, 1); // Go to EQ1 type
     for (int i = 0; i < 10; i++) {
         core_handleEnc(1, 1);
         delay(100);

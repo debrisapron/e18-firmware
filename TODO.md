@@ -1,5 +1,3 @@
-- Rest of auxes & eqs
-- Only show EQ params if EQ active
 - Decibel display
 - Frequency display
 - Encoder speed affects change rate

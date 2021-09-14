@@ -45,7 +45,7 @@ void gfx_drawValueLine(int xStart, int yStart, byte value, int length, int color
   gfx_tft.drawLine(xStart, yStart, xEnd, yEnd, color);
 }
 
-void gfx_drawDial(byte row, byte channel, bool isScalar, byte oldValue, byte newValue, const char* displayValue) {
+void gfx_drawDial(byte row, byte channel, bool isScalar, bool isDisabled, byte oldValue, byte newValue, const char* displayValue) {
   unsigned int x = gfx_getDialX(channel);
   unsigned int y = gfx_getDialY(row);
 
@@ -53,9 +53,10 @@ void gfx_drawDial(byte row, byte channel, bool isScalar, byte oldValue, byte new
   gfx_drawValueLine(x, y, oldValue, LAYOUT_DIAL_RADIUS - 10, RA8875_BLACK);
   
   // Print display value
-  gfx_drawText(x - 22, y - 18, RA8875_TEXT_MD, RA8875_WHITE, displayValue);
+  int textColor = isDisabled ? RA8875_LIGHT_GREY : RA8875_WHITE;
+  gfx_drawText(x - 22, y - 18, RA8875_TEXT_MD, textColor, displayValue);
 
-  if (isScalar) {
+  if (isScalar && !isDisabled) {
     // Draw value line
     gfx_drawValueLine(x, y, newValue, LAYOUT_DIAL_RADIUS - 10, RA8875_RED);
   }

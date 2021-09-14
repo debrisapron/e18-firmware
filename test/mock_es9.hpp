@@ -15,6 +15,7 @@ typedef struct {
     for (byte i = 4; i < inLength; i++) {
       strIdx += sprintf(__es9_sysexMessages[__es9_idx] + strIdx, "%02X ", inArray[i]);
     }
+    // TEST_MESSAGE(__es9_sysexMessages[__es9_idx]);
     __es9_idx++;
   }
 } MockMidi;
