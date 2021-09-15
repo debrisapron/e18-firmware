@@ -52,8 +52,9 @@ void core_drawDial(byte row, byte channel, byte oldValue, byte newValue) {
   byte kind = params[paramId].kind;
   bool isScalar = kind != PARAM_KIND_FILTER_TYPE;
   bool isDisabled = core_getIsParamDisabled(paramId, channel);
+  bool isMuted = core_state[PARAM_MUTE][channel];
   core_getDisplayValue(displayValueBuffer, kind, isDisabled, newValue);
-  gfx_drawDial(row, channel, isScalar, isDisabled, oldValue, newValue, displayValueBuffer);
+  gfx_drawDial(row, channel, oldValue, newValue, displayValueBuffer, isScalar, isDisabled, isMuted);
 }
 
 void core_updateValue(byte row, byte channel, int direction) {
@@ -61,20 +62,34 @@ void core_updateValue(byte row, byte channel, int direction) {
   if (core_getIsParamDisabled(paramId, channel)) return;
   
   byte oldValue = core_state[paramId][channel];
-  bool isFilterType = params[paramId].kind == PARAM_KIND_FILTER_TYPE;
-  byte step = isFilterType ? 1 : 2;
-  byte limit = isFilterType ? (FILTER_TYPE_COUNT - 1) : 254;
-  int newValue;
+  byte kind = params[paramId].kind;
+  byte step;
+  byte limit;
+  switch (kind) {
+    case PARAM_KIND_FILTER_TYPE:
+      step = 1;
+      limit = FILTER_TYPE_COUNT - 1;
+      break;
+    case PARAM_KIND_MUTE:
+      step = 1;
+      limit = 1;
+      break;
+    default:
+      step = 2;
+      limit = 254;
+  }
 
+  int newValue;
   newValue = oldValue + step * direction;
   if (newValue < 0 || newValue > limit) return;
   core_state[paramId][channel] = newValue;
 
   core_drawDial(row, channel, oldValue, newValue);
   es9_sendParam(paramId, channel, core_state);
-  if (isFilterType && !oldValue != !newValue) {
-    // If we're bypassing or activating an EQ, the other row might be showing
-    // one of the EQs params and need to be disabled or enabled
+
+  // If we're toggling mute, or bypassing/activating an EQ, the other row might
+  // need to be redrawn
+  if (kind == PARAM_KIND_MUTE || (kind == PARAM_KIND_FILTER_TYPE && !oldValue != !newValue)) {
     byte otherRow = 1 - row;
     byte otherParamId = core_paramIds[otherRow];
     byte otherRowValue = core_state[otherParamId][channel];
@@ -107,13 +122,24 @@ void core_updateParam(byte row, int direction) {
   core_drawRow(row, oldParamId);
 }
 
-void core_handleEnc(byte enc, int action) {
-  // For now handle only inc & dec
-  if (action == 0) return;
-  
-  // -1 or 1
-  int direction = action;
+void core_toggleMute(byte channel) {
+  // Toggle value
+  core_state[PARAM_MUTE][channel] = !core_state[PARAM_MUTE][channel];
 
+  // Redraw channel dials
+  byte topValue = core_state[core_paramIds[ROW_TOP]][channel];
+  core_drawDial(ROW_TOP, channel, topValue, topValue);
+  byte bottomValue = core_state[core_paramIds[ROW_BOTTOM]][channel];
+  core_drawDial(ROW_BOTTOM, channel, bottomValue, bottomValue);
+
+  es9_sendParam(PARAM_MUTE, channel, core_state);
+}
+
+void core_handleEncClick(byte enc, bool isDown) {
+  if (enc >= 10 && isDown) core_toggleMute(enc - 10);
+}
+
+void core_handleEncRotate(byte enc, int direction) {
   if (enc == 0) {
     // Handle top param switch enc
     core_updateParam(ROW_TOP, direction);
@@ -125,6 +151,15 @@ void core_handleEnc(byte enc, int action) {
     byte row = enc < 9 ? 0 : 1;
     byte channel = enc - (row == 0 ? 1 : 10);
     core_updateValue(row, channel, direction);
+  }
+}
+
+void core_handleEnc(byte enc, byte action) {
+  switch (action) {
+    case ENC_ACTION_INC: core_handleEncRotate(enc, 1); break;
+    case ENC_ACTION_DEC: core_handleEncRotate(enc, -1); break;
+    case ENC_ACTION_PRESS: core_handleEncClick(enc, true); break;
+    case ENC_ACTION_RELEASE: core_handleEncClick(enc, false); break;
   }
 }
 
@@ -156,10 +191,12 @@ void core_setup(void) {
 }
 
 void core_loop(void) {
-  encs_read();
+  unsigned int encCode = encs_read();
 
-  if (encs_newIndex > -1) {
-    core_handleEnc(encs_newIndex, encs_newAction);
+  if (encCode) {
+    byte encIndex = encCode >> 8;
+    byte encAction = encCode & 0xFF;
+    core_handleEnc(encIndex, encAction);
     core_lastActiveMs = millis();
     return;
   }

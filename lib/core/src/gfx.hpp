@@ -10,6 +10,7 @@
 #define RA8875_TEXT_SM 0
 #define RA8875_TEXT_MD 1
 #define RA8875_TEXT_LG 2
+#define RA8875_TEXT_XL 3
 
 #define BYTE_TO_DEG 1.41176470588
 
@@ -28,10 +29,14 @@ unsigned int gfx_getDialY(byte row) {
   return row == 0 ? LAYOUT_DIAL_Y : 480 - LAYOUT_DIAL_Y;
 }
 
-void gfx_drawText(unsigned int x, unsigned int y, byte size, unsigned int color, const char* buffer) {
+void gfx_drawText(unsigned int x, unsigned int y, byte size, unsigned int color, const char* buffer, bool isTransp = false) {
   gfx_tft.textMode();
   gfx_tft.textSetCursor(x, y);
-  gfx_tft.textColor(color, RA8875_BLACK);
+  if (isTransp) {
+    gfx_tft.textTransparent(color);
+  } else {
+    gfx_tft.textColor(color, RA8875_BLACK);
+  }
   gfx_tft.textEnlarge(size);
   gfx_tft.textWrite(buffer);
   gfx_tft.graphicsMode();
@@ -45,13 +50,17 @@ void gfx_drawValueLine(int xStart, int yStart, byte value, int length, int color
   gfx_tft.drawLine(xStart, yStart, xEnd, yEnd, color);
 }
 
-void gfx_drawDial(byte row, byte channel, bool isScalar, bool isDisabled, byte oldValue, byte newValue, const char* displayValue) {
+void gfx_drawDial(byte row, byte channel, byte oldValue, byte newValue, const char* displayValue, bool isScalar, bool isDisabled, bool isMuted) {
   unsigned int x = gfx_getDialX(channel);
   unsigned int y = gfx_getDialY(row);
 
   // Clear existing line
   gfx_drawValueLine(x, y, oldValue, LAYOUT_DIAL_RADIUS - 10, RA8875_BLACK);
-  
+
+  // Show/hide mute indicator (this is v wasteful)
+  gfx_drawText(x - 48, y - 36, RA8875_TEXT_XL, isMuted ? RA8875_BLUE : RA8875_BLACK, " M ");
+  if (isMuted) return;
+
   // Print display value
   int textColor = isDisabled ? RA8875_LIGHT_GREY : RA8875_WHITE;
   gfx_drawText(x - 22, y - 18, RA8875_TEXT_MD, textColor, displayValue);

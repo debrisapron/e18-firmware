@@ -3,9 +3,10 @@
 #define ROW_TOP 0
 #define ROW_BOTTOM 1
 
-#define PARAM_COUNT 24
+#define PARAM_COUNT 25
 #define PARAM_VOL 0
 #define PARAM_PAN 1
+#define PARAM_MUTE 24
 
 #define PARAM_KIND_DEFAULT 0
 #define PARAM_KIND_PAN 1
@@ -13,8 +14,15 @@
 #define PARAM_KIND_FILTER_FREQ 3
 #define PARAM_KIND_FILTER_GAIN 4
 #define PARAM_KIND_FILTER_Q 5
+#define PARAM_KIND_MUTE 6
 
 #define FILTER_TYPE_COUNT 8
+
+#define ENC_ACTION_NONE 0
+#define ENC_ACTION_INC 1
+#define ENC_ACTION_DEC 2
+#define ENC_ACTION_PRESS 3
+#define ENC_ACTION_RELEASE 4
 
 typedef struct {
   const char* name;
@@ -50,7 +58,8 @@ const Param params[PARAM_COUNT] = {
   { "AUX2" },
   { "AUX2 PAN", PARAM_KIND_PAN },
   { "AUX3" },
-  { "AUX3 PAN", PARAM_KIND_PAN }
+  { "AUX3 PAN", PARAM_KIND_PAN },
+  { "MUTE", PARAM_KIND_MUTE }
 };
 
 const FilterType filterTypes[FILTER_TYPE_COUNT] = {
@@ -68,8 +77,9 @@ typedef byte E18State[PARAM_COUNT][CHANNEL_COUNT];
 
 void gfx_setup(void);
 void gfx_start(void);
-void gfx_drawDial(byte row, byte channel, bool isScalar, bool isDisabled, byte oldValue, byte newValue, const char* displayValue);
+void gfx_drawDial(byte row, byte channel, byte oldValue, byte newValue, const char* displayValue, bool isScalar, bool isDisabled, bool isMuted);
 void gfx_drawParamName(byte row, const char* name);
+void __gfx_click(bool isDown);
 
 void eep_load(E18State state, byte rowParams[2]);
 void eep_save(E18State state, byte rowParams[2]);
@@ -78,6 +88,4 @@ void es9_setup(E18State state);
 void es9_sendParam(byte paramId, byte channel, E18State state);
 
 void encs_setup(void);
-void encs_read(void);
-int encs_newIndex;
-int encs_newAction;
+unsigned int encs_read(void);

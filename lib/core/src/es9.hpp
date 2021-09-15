@@ -69,11 +69,12 @@ void es9_sendStereoVol(byte channel, byte vol, byte pan, byte dest) {
 }
 
 void es9_sendAuxStereoVol(byte channel, E18State state, byte auxNo) {
+  bool isMuted = state[PARAM_MUTE][channel];
   byte auxVolParamId = PARAM_AUX_START + auxNo * PARAM_AUX_PARAM_COUNT;
   byte auxVol = state[auxVolParamId][channel];
   byte auxPan = state[auxVolParamId + 1][channel];
 
-  byte channelVol = state[PARAM_VOL][channel];
+  byte channelVol = isMuted ? 0 : state[PARAM_VOL][channel];
   auxVol = auxVol * (channelVol / 255.0);
 
   byte auxOut = AUX1_CHANNEL + auxNo * PARAM_AUX_PARAM_COUNT;
@@ -90,7 +91,8 @@ void es9_sendEq(byte channel, E18State state, byte eqNo) {
 }
 
 void es9_sendChannelStereoVols(byte channel, E18State state) {
-  byte vol = state[PARAM_VOL][channel];
+  bool isMuted = state[PARAM_MUTE][channel];
+  byte vol = isMuted ? 0 : state[PARAM_VOL][channel];
   byte pan = state[PARAM_PAN][channel];
   es9_sendStereoVol(channel, vol, pan, MASTER_CHANNEL);
   for (byte auxNo = 0; auxNo < PARAM_AUX_COUNT; auxNo++) {
@@ -100,7 +102,7 @@ void es9_sendChannelStereoVols(byte channel, E18State state) {
 
 void es9_sendParam(byte paramId, byte channel, E18State state) {
   // Handle all mix routings
-  if (paramId == PARAM_VOL || paramId == PARAM_PAN) {
+  if (paramId == PARAM_VOL || paramId == PARAM_PAN || paramId == PARAM_MUTE) {
     es9_sendChannelStereoVols(channel, state);
   } else if (paramId >= PARAM_EQ_START && paramId <= PARAM_EQ_END) {
     byte eqNo = (paramId - PARAM_EQ_START) / PARAM_EQ_PARAM_COUNT;
