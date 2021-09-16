@@ -1,7 +1,7 @@
+- Encoder speed affects change rate
+- Scenes
 - Decibel display
 - Frequency display
-- Encoder speed affects change rate
-- Mute
 - Solo
 - Mono/Stereo channels
 - Flash ES9
