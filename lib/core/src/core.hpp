@@ -9,6 +9,7 @@ byte core_status = STATUS_INIT;
 byte core_paramIds[2];
 E18State core_state;
 unsigned long core_lastActiveMs = 0; // When set to zero, never go idle
+unsigned long core_prevLastActiveMs = 0;
 
 void core_getDisplayValue(char* buffer, byte paramId, bool isDisabled, byte value) {
   if (isDisabled) {
@@ -57,7 +58,7 @@ void core_drawDial(byte row, byte channel, byte oldValue, byte newValue) {
   gfx_drawDial(row, channel, oldValue, newValue, displayValueBuffer, isScalar, isDisabled, isMuted);
 }
 
-void core_updateValue(byte row, byte channel, int direction) {
+void core_updateValue(byte row, byte channel, int direction, byte speed) {
   byte paramId = core_paramIds[row];
   if (core_getIsParamDisabled(paramId, channel)) return;
   
@@ -69,21 +70,30 @@ void core_updateValue(byte row, byte channel, int direction) {
     case PARAM_KIND_FILTER_TYPE:
       step = 1;
       limit = FILTER_TYPE_COUNT - 1;
+      speed = 1;
       break;
     case PARAM_KIND_MUTE:
       step = 1;
       limit = 1;
+      speed = 1;
       break;
     default:
       step = 2;
       limit = 254;
   }
-
   int newValue;
-  newValue = oldValue + step * direction;
-  if (newValue < 0 || newValue > limit) return;
-  core_state[paramId][channel] = newValue;
 
+  // Starting with the passed-in speed, try decreasing speed values until we get
+  // a delta that fits within the parameter range. If we get to zero, we have
+  // hit the limit so return.
+  // TODO Figure out a simpler way to do this, I am very intelligent
+  for (byte attemptedSpeed = speed; attemptedSpeed >= 0; attemptedSpeed--) {
+    if (attemptedSpeed == 0) return;
+    newValue = oldValue + direction * step * attemptedSpeed;
+    if (newValue >= 0 && newValue <= limit) break;
+  }
+  
+  core_state[paramId][channel] = newValue;
   core_drawDial(row, channel, oldValue, newValue);
   es9_sendParam(paramId, channel, core_state);
 
@@ -139,7 +149,7 @@ void core_handleEncClick(byte enc, bool isDown) {
   if (enc >= 10 && isDown) core_toggleMute(enc - 10);
 }
 
-void core_handleEncRotate(byte enc, int direction) {
+void core_handleEncRotate(byte enc, int direction, byte speed) {
   if (enc == 0) {
     // Handle top param switch enc
     core_updateParam(ROW_TOP, direction);
@@ -150,14 +160,14 @@ void core_handleEncRotate(byte enc, int direction) {
     // Handle value encs
     byte row = enc < 9 ? 0 : 1;
     byte channel = enc - (row == 0 ? 1 : 10);
-    core_updateValue(row, channel, direction);
+    core_updateValue(row, channel, direction, speed);
   }
 }
 
-void core_handleEnc(byte enc, byte action) {
+void core_handleEnc(byte enc, byte action, byte speed) {
   switch (action) {
-    case ENC_ACTION_INC: core_handleEncRotate(enc, 1); break;
-    case ENC_ACTION_DEC: core_handleEncRotate(enc, -1); break;
+    case ENC_ACTION_INC: core_handleEncRotate(enc, 1, speed); break;
+    case ENC_ACTION_DEC: core_handleEncRotate(enc, -1, speed); break;
     case ENC_ACTION_PRESS: core_handleEncClick(enc, true); break;
     case ENC_ACTION_RELEASE: core_handleEncClick(enc, false); break;
   }
@@ -192,17 +202,30 @@ void core_setup(void) {
 
 void core_loop(void) {
   unsigned int encCode = encs_read();
-
+  unsigned long now = millis();
+  
   if (encCode) {
     byte encIndex = encCode >> 8;
     byte encAction = encCode & 0xFF;
-    core_handleEnc(encIndex, encAction);
-    core_lastActiveMs = millis();
+    byte speed = 1;
+    if (core_prevLastActiveMs != 0) {
+      unsigned long msSinceLastActive = now - core_lastActiveMs;
+      unsigned long msSincePrevLastActive = now - core_prevLastActiveMs;
+      if (msSinceLastActive < 100 && msSincePrevLastActive < 200) {
+        speed = 4;
+      } else if (msSinceLastActive < 200 && msSincePrevLastActive < 400) {
+        speed = 2;
+      }
+    }
+    core_handleEnc(encIndex, encAction, speed);
+    core_prevLastActiveMs = core_lastActiveMs;
+    core_lastActiveMs = now;
     return;
   }
 
-  if (core_lastActiveMs != 0 && millis() > core_lastActiveMs + ACTIVE_TIMEOUT_MS) {
+  if (core_lastActiveMs != 0 && (now - core_lastActiveMs) > ACTIVE_TIMEOUT_MS) {
     core_lastActiveMs = 0;
+    core_prevLastActiveMs = 0;
     eep_save(core_state, core_paramIds);
   }
 }

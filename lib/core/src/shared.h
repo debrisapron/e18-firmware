@@ -79,7 +79,7 @@ void gfx_setup(void);
 void gfx_start(void);
 void gfx_drawDial(byte row, byte channel, byte oldValue, byte newValue, const char* displayValue, bool isScalar, bool isDisabled, bool isMuted);
 void gfx_drawParamName(byte row, const char* name);
-void __gfx_click(bool isDown);
+void __gfx_log(const char* s);
 
 void eep_load(E18State state, byte rowParams[2]);
 void eep_save(E18State state, byte rowParams[2]);

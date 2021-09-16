@@ -79,7 +79,7 @@ void gfx_drawDial(byte row, byte channel, byte oldValue, byte newValue, const ch
   gfx_drawValueLine(x, y, oldValue, LAYOUT_DIAL_RADIUS - 10, RA8875_BLACK);
 
   // Show/hide mute indicator
-  bool currentMuteStatus = gfx_mutedDials[row][channel];
+  byte currentMuteStatus = gfx_mutedDials[row][channel];
   if (currentMuteStatus != isMuted) {
     gfx_mutedDials[row][channel] = isMuted;
     // unsigned int yChanNo = row == 0
@@ -148,4 +148,8 @@ void gfx_setup(void) {
   gfx_tft.PWM1out(255);
 
   gfx_drawText(100, 260, "Initializing...", RA8875_TEXT_LG, RA8875_WHITE);
+}
+
+void __gfx_log(const char* s) {
+  gfx_drawText(500, 240, s);
 }
