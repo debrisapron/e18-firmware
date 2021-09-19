@@ -34,6 +34,13 @@ typedef struct {
   const char* name;
 } FilterType;
 
+typedef byte Mix[PARAM_COUNT][CHANNEL_COUNT];
+
+typedef struct {
+  byte pIds[2];
+  Mix mix;
+} Scene;
+
 const Param params[PARAM_COUNT] = {
   { "VOL" },
   { "PAN", PARAM_KIND_PAN },
@@ -73,19 +80,19 @@ const FilterType filterTypes[FILTER_TYPE_COUNT] = {
   { 0x07, "HP2" }
 };
 
-typedef byte E18State[PARAM_COUNT][CHANNEL_COUNT];
-
 void gfx_setup(void);
 void gfx_start(void);
-void gfx_drawDial(byte row, byte channel, byte oldValue, byte newValue, const char* displayValue, bool isScalar, bool isDisabled, bool isMuted);
+void gfx_drawDial(byte row, byte channel, byte value, const char* displayValue, bool isScalar, bool isDisabled, bool isMuted);
 void gfx_drawParamName(byte row, const char* name);
+void gfx_drawFlash(const char* msg);
+void gfx_clearFlash();
 void __gfx_log(const char* s);
 
-void eep_load(E18State state, byte rowParams[2]);
-void eep_save(E18State state, byte rowParams[2]);
+bool eep_load(Scene *currScene, Scene slots[8]);
+void eep_save(Scene *currScene, Scene slots[8]);
 
-void es9_setup(E18State state);
-void es9_sendParam(byte paramId, byte channel, E18State state);
+void es9_setup(Mix mix);
+void es9_sendParam(byte paramId, byte channel, Mix mix);
 
 void encs_setup(void);
 unsigned int encs_read(void);

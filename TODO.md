@@ -1,7 +1,6 @@
-- Encoder speed affects change rate
-- Scenes
 - Decibel display
 - Frequency display
+- Dirty scene indicator
 - Solo
 - Mono/Stereo channels
 - Flash ES9

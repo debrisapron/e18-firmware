@@ -10,7 +10,7 @@
 
 extern byte core_status;
 extern byte core_paramIds[2];
-extern E18State core_state;
+extern Mix core_mix;
 extern char __es9_sysexMessages[100][30];
 extern byte __es9_idx;
 
@@ -23,8 +23,8 @@ void test_setup(void) {
     TEST_ASSERT_EQUAL(0, core_status);
     core_setup();
     TEST_ASSERT_EQUAL(1, core_status);
-    TEST_ASSERT_EQUAL_MESSAGE(0, core_state[0][0], "Vol 0 should be 0");
-    TEST_ASSERT_EQUAL_MESSAGE(128, core_state[1][0], "Pan 0 should be 0");
+    TEST_ASSERT_EQUAL_MESSAGE(0, core_mix[0][0], "Vol 0 should be 0");
+    TEST_ASSERT_EQUAL_MESSAGE(128, core_mix[1][0], "Pan 0 should be 0");
     TEST_ASSERT_EQUAL_MESSAGE(1, core_paramIds[0], "Top row should be Pan");
     TEST_ASSERT_EQUAL_MESSAGE(0, core_paramIds[1], "Bottom row should be Vol");
 }
@@ -36,7 +36,7 @@ void test_incrementValue(void) {
         delay(100);
     }
     // It should go up 2 for every click
-    TEST_ASSERT_EQUAL_MESSAGE(20, core_state[0][0], "Vol 0 should be 22");
+    TEST_ASSERT_EQUAL_MESSAGE(20, core_mix[0][0], "Vol 0 should be 22");
     TEST_ASSERT_EQUAL_CHAR_ARRAY("34 00 09", __es9_sysexMessages[72], 8);
     TEST_ASSERT_EQUAL_CHAR_ARRAY("34 08 09", __es9_sysexMessages[73], 8);
 }
@@ -47,7 +47,7 @@ void test_decrementValue(void) {
         delay(100);
     }
     // It should go down 2 for every click, but not below zero
-    TEST_ASSERT_EQUAL_MESSAGE(0, core_state[0][0], "Vol 0 should be 0");
+    TEST_ASSERT_EQUAL_MESSAGE(0, core_mix[0][0], "Vol 0 should be 0");
 }
 
 void test_changeSelectedParam(void) {
@@ -77,7 +77,7 @@ void test_incrementEqType(void) {
         delay(100);
     }
     // It should go up 1 for every click, but not above 7
-    TEST_ASSERT_EQUAL(7, core_state[2][0]);
+    TEST_ASSERT_EQUAL(7, core_mix[2][0]);
     // Check sent sysex
     TEST_ASSERT_EQUAL_CHAR_ARRAY("39 00 00 07 00 00 00 00 00 00 00 00 00", __es9_sysexMessages[6], 38);
 }
@@ -86,8 +86,8 @@ void test_setupWithLoadFromEEPROM(void) {
     __es9_idx = 0; // Activate es9 mock recording
     __eep_data = __EEP_DATA;
     core_setup();
-    TEST_ASSERT_EQUAL_MESSAGE(2, core_state[0][0], "Vol 0 should be 2");
-    TEST_ASSERT_EQUAL_MESSAGE(2, core_state[1][0], "Pan 0 should be 2");
+    TEST_ASSERT_EQUAL_MESSAGE(2, core_mix[0][0], "Vol 0 should be 2");
+    TEST_ASSERT_EQUAL_MESSAGE(2, core_mix[1][0], "Pan 0 should be 2");
     TEST_ASSERT_EQUAL_MESSAGE(3, core_paramIds[0], "Top row should be EQ1 Freq");
     TEST_ASSERT_EQUAL_MESSAGE(2, core_paramIds[1], "Bottom row should be EQ1 Type");
     // Check sysex messages sent to ES9 for channel 0
