@@ -1,4 +1,3 @@
-- Decibel display
 - Frequency display
 - Dirty scene indicator
 - Solo

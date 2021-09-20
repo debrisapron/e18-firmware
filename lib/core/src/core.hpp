@@ -11,9 +11,31 @@ unsigned long core_lastActiveMs = 0; // When set to zero, never go idle
 unsigned long core_prevLastActiveMs = 0;
 unsigned long core_lastShowedFlash = 0;
 
+// Hacked from the ES9 web config tool. Absolutely minging
+void volToDb(char* buffer, byte v) {
+  if (v == 0) {
+    sprintf(buffer, "-inf");
+    return;
+  }
+  if (v == 102) {
+    sprintf(buffer, "-0.5");
+    return;
+  }
+
+	// Get dbs as a double
+	double db = v >= 55
+    ? -24.0 + 0.5 * (v - 55.0)
+    : -72.0 + ( v - 1 ) * ( 72 - 24 ) / ( 55.0 - 1 );
+  
+	// Convert double to a string with max 2 signficant digits
+  bool isFractional = db < 10 && db > -10 && !(v % 2);
+  char sign = db < 0 ? '-' : '+';
+	sprintf(buffer, isFractional ? "%c%i.5" : "%c%-3i", sign, abs((int)db));
+}
+
 void core_getDisplayValue(char* buffer, byte paramId, bool isDisabled, byte value) {
   if (isDisabled) {
-    sprintf(buffer, "---");
+    sprintf(buffer, "--- ");
     return;
   }
 
@@ -21,16 +43,17 @@ void core_getDisplayValue(char* buffer, byte paramId, bool isDisabled, byte valu
   switch (kind) {
     case PARAM_KIND_PAN: {
       int dispVal = value / 2 - 64;
+      // Seems like you can't use '0' & '+' format flags together
       char sign = dispVal < 0 ? '-' : '+';
-      sprintf(buffer, "%c%02d", sign, abs(dispVal));
+      sprintf(buffer, "%c%02d ", sign, abs(dispVal));
       break;
     }
     case PARAM_KIND_FILTER_TYPE: {
-      sprintf(buffer, "%s", filterTypes[value].name);
+      sprintf(buffer, "%s ", filterTypes[value].name);
       break;
     }
     default: {
-      sprintf(buffer, "%03d", value / 2);
+      volToDb(buffer, value / 2);
       break;
     }
   }
@@ -48,7 +71,7 @@ bool core_getIsParamDisabled(byte paramId, byte channel) {
 }
 
 void core_drawDial(byte row, byte channel) {
-  char displayValue[4];
+  char displayValue[5];
   byte paramId = core_scene.pIds[row];
   byte value = core_scene.mix[paramId][channel];
   byte kind = params[paramId].kind;
@@ -276,6 +299,6 @@ void core_loop(void) {
     core_lastActiveMs = 0;
     core_prevLastActiveMs = 0;
     eep_save(&core_scene, core_sceneSlots);
-    core_showFlash("saved state to EEPROM");
+    core_showFlash("*");
   }
 }
