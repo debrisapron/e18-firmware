@@ -1,4 +1,3 @@
-- Frequency display
 - Dirty scene indicator
 - Solo
 - Mono/Stereo channels

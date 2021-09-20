@@ -101,7 +101,7 @@ void gfx_drawDial(byte row, byte channel, byte value, const char* displayValue, 
 
   // Print display value
   int textColor = (isDisabled || isMuted) ? LIGHT_GREY : WHITE;
-  gfx_drawText(x - 23, y - 18, displayValue, TEXT_MD, textColor);
+  gfx_drawText(x - 25, y - 18, displayValue, TEXT_MD, textColor);
 
   if (isScalar && !isDisabled) {
     // Draw value line

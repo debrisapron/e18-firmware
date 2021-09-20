@@ -12,13 +12,13 @@ unsigned long core_prevLastActiveMs = 0;
 unsigned long core_lastShowedFlash = 0;
 
 // Hacked from the ES9 web config tool. Absolutely minging
-void volToDb(char* buffer, byte v) {
+void sevenBitToDb(char *buff, byte v) {
   if (v == 0) {
-    sprintf(buffer, "-inf");
+    sprintf(buff, "-inf");
     return;
   }
   if (v == 102) {
-    sprintf(buffer, "-0.5");
+    sprintf(buff, "-0.5");
     return;
   }
 
@@ -30,12 +30,24 @@ void volToDb(char* buffer, byte v) {
 	// Convert double to a string with max 2 signficant digits
   bool isFractional = db < 10 && db > -10 && !(v % 2);
   char sign = db < 0 ? '-' : '+';
-	sprintf(buffer, isFractional ? "%c%i.5" : "%c%-3i", sign, abs((int)db));
+	sprintf(buff, isFractional ? "%c%i.5" : "%c%-3i", sign, abs((int)db));
 }
 
-void core_getDisplayValue(char* buffer, byte paramId, bool isDisabled, byte value) {
+// Also hacked from the ES9 web config tool, but much nicer
+void sevenBitToFreq(char *buff, byte v) {
+  double min = 10.0;
+  double mult = log(22000.0 / min) / 128.0;
+  double freq = min * exp(mult * v);
+  if (freq < 10000) {
+    sprintf(buff, "%4i", (int)freq);
+  } else {
+    sprintf(buff, "%3ik", (int)(freq / 1000));
+  }
+}
+
+void core_getDisplayValue(char* buff, byte paramId, bool isDisabled, byte value) {
   if (isDisabled) {
-    sprintf(buffer, "--- ");
+    sprintf(buff, "--- ");
     return;
   }
 
@@ -45,15 +57,19 @@ void core_getDisplayValue(char* buffer, byte paramId, bool isDisabled, byte valu
       int dispVal = value / 2 - 64;
       // Seems like you can't use '0' & '+' format flags together
       char sign = dispVal < 0 ? '-' : '+';
-      sprintf(buffer, "%c%02d ", sign, abs(dispVal));
+      sprintf(buff, "%c%02d ", sign, abs(dispVal));
       break;
     }
     case PARAM_KIND_FILTER_TYPE: {
-      sprintf(buffer, "%s ", filterTypes[value].name);
+      sprintf(buff, "%s ", filterTypes[value].name);
+      break;
+    }
+    case PARAM_KIND_FILTER_FREQ: {
+      sevenBitToFreq(buff, value / 2);
       break;
     }
     default: {
-      volToDb(buffer, value / 2);
+      sevenBitToDb(buff, value / 2);
       break;
     }
   }
