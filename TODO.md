@@ -1,5 +1,4 @@
 - Dirty scene indicator
-- Solo
 - Mono/Stereo channels
 - Flash ES9
 - Saving-to-EEPROM indicator

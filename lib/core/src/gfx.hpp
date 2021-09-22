@@ -10,6 +10,7 @@
 #define DARK_GREY 0x2965
 #define RED RA8875_RED
 #define BLUE RA8875_BLUE
+#define YELLOW RA8875_YELLOW
 
 #define TEXT_SM 0
 #define TEXT_MD 1
@@ -26,9 +27,10 @@
 typedef struct {
   bool isRendered;
   byte value;
+  byte chaState;
   bool isScalar;
   bool isDisabled;
-  bool isMuted;
+  bool isSilent;
 } DialStatus;
 
 Adafruit_RA8875 gfx_tft = Adafruit_RA8875(RA8875_CS, RA8875_RESET);
@@ -80,7 +82,7 @@ void gfx_drawDialMarkers(unsigned int x, unsigned int y, unsigned int color) {
   gfx_tft.drawTriangle(x - 5, yTriT, x + 5, yTriT, x, yTriT + 10, color);
 }
 
-void gfx_drawDial(byte row, byte channel, byte value, const char* displayValue, bool isScalar, bool isDisabled, bool isMuted) {
+void gfx_drawDial(byte row, byte channel, byte value, const char* displayValue, byte chaState, bool isScalar, bool isDisabled, bool isSilent) {
   DialStatus status = gfx_dials[row][channel];
   unsigned int x = gfx_getDialX(channel);
   unsigned int y = gfx_getDialY(row);
@@ -90,30 +92,45 @@ void gfx_drawDial(byte row, byte channel, byte value, const char* displayValue, 
     gfx_drawValueLine(x, y, status.value, LAYOUT_DIAL_RADIUS - 10, BLACK);
   }
 
-  // Show/hide mute indicator
-  if (!status.isRendered || status.isMuted != isMuted) {
-    // unsigned int yChanNo = row == 0
-    //   ? y + LAYOUT_DIAL_RADIUS + 3
-    //   : y - LAYOUT_DIAL_RADIUS - 35;
-    // gfx_drawText(x + 15, yChanNo, "M", TEXT_MD, BLACK, isMuted ? BLUE : BLACK);
-    gfx_drawDialMarkers(x, y, isMuted ? LIGHT_GREY : RED);
+  // Activate/deactivate status indicators
+  if (row == 1 && (!status.isRendered || status.chaState != chaState)) {
+    unsigned int yChanNo = row == 0
+      ? y + LAYOUT_DIAL_RADIUS + 3
+      : y - LAYOUT_DIAL_RADIUS - 35;
+    switch (chaState) {
+      case CHA_STATE_MUTED:
+        gfx_drawText(x + 15, yChanNo, "M", TEXT_MD, BLACK, BLUE);
+        break;
+      case CHA_STATE_SOLOED:
+        gfx_drawText(x + 15, yChanNo, "S", TEXT_MD, BLACK, YELLOW);
+        break;
+      default:
+        gfx_drawText(x + 15, yChanNo, " ");
+        break;
+    }
+  }
+
+  // Activate/deactivate silent colors
+  if (!status.isRendered || status.isSilent != isSilent) {
+    gfx_drawDialMarkers(x, y, isSilent ? LIGHT_GREY : RED);
   }
 
   // Print display value
-  int textColor = (isDisabled || isMuted) ? LIGHT_GREY : WHITE;
+  int textColor = (isDisabled || isSilent) ? LIGHT_GREY : WHITE;
   gfx_drawText(x - 25, y - 18, displayValue, TEXT_MD, textColor);
 
   if (isScalar && !isDisabled) {
     // Draw value line
-    gfx_drawValueLine(x, y, value, LAYOUT_DIAL_RADIUS - 10, isMuted ? LIGHT_GREY : RED);
+    gfx_drawValueLine(x, y, value, LAYOUT_DIAL_RADIUS - 10, isSilent ? LIGHT_GREY : RED);
   }
 
   gfx_dials[row][channel] = {
     .isRendered = true,
     .value = value,
+    .chaState = chaState,
     .isScalar = isScalar,
     .isDisabled = isDisabled,
-    .isMuted = isMuted
+    .isSilent = isSilent
   };
 }
 
@@ -160,10 +177,6 @@ void gfx_drawStaticElements(void) {
 
 void gfx_start(void) {
   gfx_tft.fillScreen(BLACK);
-  // for (byte b = 0; b < CHANNEL_COUNT; b++) {
-  //   gfx_dials[0][b] = {};
-  //   gfx_dials[1][b] = {};
-  // }
   gfx_drawStaticElements();
 }
 

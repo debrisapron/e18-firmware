@@ -68,13 +68,31 @@ void es9_sendStereoVol(byte channel, byte vol, byte pan, byte dest) {
   es9_sendGain(channel, dest + 1, gainRight);
 }
 
-void es9_sendAuxStereoVol(byte channel, Mix mix, byte auxNo) {
-  bool isMuted = mix[PARAM_MUTE][channel];
+byte es9_getChannelVol(byte channel, Mix mix) {
+  byte chaState = mix[PARAM_CHA_STATE][channel];
+  bool isSilent = false;
+  if (chaState == CHA_STATE_MUTED) {
+    isSilent = true;
+  } else if (chaState == CHA_STATE_NORMAL) {
+    for (byte cha = 0; cha < 8; cha++) {
+      if (mix[PARAM_CHA_STATE][cha] == CHA_STATE_SOLOED) {
+        isSilent = true;
+        break;
+      }
+    }
+  }
+  byte vol = isSilent ? 0 : mix[PARAM_VOL][channel];
+  return vol;
+}
+
+void es9_sendAuxStereoVol(byte channel, Mix mix, byte auxNo, int channelVol = -1) {
   byte auxVolParamId = PARAM_AUX_START + auxNo * PARAM_AUX_PARAM_COUNT;
   byte auxVol = mix[auxVolParamId][channel];
   byte auxPan = mix[auxVolParamId + 1][channel];
 
-  byte channelVol = isMuted ? 0 : mix[PARAM_VOL][channel];
+  if (channelVol == -1) {
+    channelVol = es9_getChannelVol(channel, mix);
+  }
   auxVol = auxVol * (channelVol / 255.0);
 
   byte auxOut = AUX1_CHANNEL + auxNo * PARAM_AUX_PARAM_COUNT;
@@ -91,18 +109,17 @@ void es9_sendEq(byte channel, Mix mix, byte eqNo) {
 }
 
 void es9_sendChannelStereoVols(byte channel, Mix mix) {
-  bool isMuted = mix[PARAM_MUTE][channel];
-  byte vol = isMuted ? 0 : mix[PARAM_VOL][channel];
+  byte vol = es9_getChannelVol(channel, mix);
   byte pan = mix[PARAM_PAN][channel];
   es9_sendStereoVol(channel, vol, pan, MASTER_CHANNEL);
   for (byte auxNo = 0; auxNo < PARAM_AUX_COUNT; auxNo++) {
-    es9_sendAuxStereoVol(channel, mix, auxNo);
+    es9_sendAuxStereoVol(channel, mix, auxNo, vol);
   }
 }
 
 void es9_sendParam(byte paramId, byte channel, Mix mix) {
   // Handle all mix routings
-  if (paramId == PARAM_VOL || paramId == PARAM_PAN || paramId == PARAM_MUTE) {
+  if (paramId == PARAM_VOL || paramId == PARAM_PAN || paramId == PARAM_CHA_STATE) {
     es9_sendChannelStereoVols(channel, mix);
   } else if (paramId >= PARAM_EQ_START && paramId <= PARAM_EQ_END) {
     byte eqNo = (paramId - PARAM_EQ_START) / PARAM_EQ_PARAM_COUNT;

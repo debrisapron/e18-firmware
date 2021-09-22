@@ -6,15 +6,14 @@
 #define PARAM_COUNT 25
 #define PARAM_VOL 0
 #define PARAM_PAN 1
-#define PARAM_MUTE 24
+#define PARAM_CHA_STATE 24
 
-#define PARAM_KIND_DEFAULT 0
+#define PARAM_KIND_VOL 0
 #define PARAM_KIND_PAN 1
 #define PARAM_KIND_FILTER_TYPE 2
 #define PARAM_KIND_FILTER_FREQ 3
 #define PARAM_KIND_FILTER_GAIN 4
 #define PARAM_KIND_FILTER_Q 5
-#define PARAM_KIND_MUTE 6
 
 #define FILTER_TYPE_COUNT 8
 
@@ -23,6 +22,10 @@
 #define ENC_ACTION_DEC 2
 #define ENC_ACTION_PRESS 3
 #define ENC_ACTION_RELEASE 4
+
+#define CHA_STATE_NORMAL 0
+#define CHA_STATE_MUTED 1
+#define CHA_STATE_SOLOED 2
 
 typedef struct {
   const char* name;
@@ -66,7 +69,7 @@ const Param params[PARAM_COUNT] = {
   { "AUX2 PAN", PARAM_KIND_PAN },
   { "AUX3" },
   { "AUX3 PAN", PARAM_KIND_PAN },
-  { "MUTE", PARAM_KIND_MUTE }
+  { "STATE" }
 };
 
 const FilterType filterTypes[FILTER_TYPE_COUNT] = {
@@ -82,7 +85,7 @@ const FilterType filterTypes[FILTER_TYPE_COUNT] = {
 
 void gfx_setup(void);
 void gfx_start(void);
-void gfx_drawDial(byte row, byte channel, byte value, const char* displayValue, bool isScalar, bool isDisabled, bool isMuted);
+void gfx_drawDial(byte row, byte channel, byte value, const char* displayValue, byte chaState, bool isScalar, bool isDisabled, bool isSilent);
 void gfx_drawParamName(byte row, const char* name);
 void gfx_drawFlash(const char* msg);
 void gfx_clearFlash();

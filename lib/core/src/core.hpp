@@ -91,11 +91,22 @@ void core_drawDial(byte row, byte channel) {
   byte paramId = core_scene.pIds[row];
   byte value = core_scene.mix[paramId][channel];
   byte kind = params[paramId].kind;
+  byte chaState = core_scene.mix[PARAM_CHA_STATE][channel];
   bool isScalar = kind != PARAM_KIND_FILTER_TYPE;
   bool isDisabled = core_getIsParamDisabled(paramId, channel);
-  bool isMuted = core_scene.mix[PARAM_MUTE][channel];
+  bool isSilent = false;
+  if (chaState == CHA_STATE_MUTED) {
+    isSilent = true;
+  } else if (chaState == CHA_STATE_NORMAL) {
+    for (byte cha = 0; cha < 8; cha++) {
+      if (core_scene.mix[PARAM_CHA_STATE][cha] == CHA_STATE_SOLOED) {
+        isSilent = true;
+        break;
+      }
+    }
+  }
   core_getDisplayValue(displayValue, kind, isDisabled, value);
-  gfx_drawDial(row, channel, value, displayValue, isScalar, isDisabled, isMuted);
+  gfx_drawDial(row, channel, value, displayValue, chaState, isScalar, isDisabled, isSilent);
 }
 
 void core_updateValue(byte row, byte channel, int direction, byte speed) {
@@ -110,11 +121,6 @@ void core_updateValue(byte row, byte channel, int direction, byte speed) {
     case PARAM_KIND_FILTER_TYPE:
       step = 1;
       limit = FILTER_TYPE_COUNT - 1;
-      speed = 1;
-      break;
-    case PARAM_KIND_MUTE:
-      step = 1;
-      limit = 1;
       speed = 1;
       break;
     default:
@@ -137,9 +143,9 @@ void core_updateValue(byte row, byte channel, int direction, byte speed) {
   core_drawDial(row, channel);
   es9_sendParam(paramId, channel, core_scene.mix);
 
-  // If we're toggling mute, or bypassing/activating an EQ, the other row might
+  // If we're bypassing/activating an EQ, the other row might
   // need to be redrawn
-  if (kind == PARAM_KIND_MUTE || (kind == PARAM_KIND_FILTER_TYPE && !oldValue != !newValue)) {
+  if (kind == PARAM_KIND_FILTER_TYPE && !oldValue != !newValue) {
     byte otherRow = 1 - row;
     core_drawDial(otherRow, channel);
   }
@@ -164,7 +170,7 @@ void core_updateParam(byte row, int direction) {
   // Increment or decrement row param, avoiding the other row's param
   newParamId = oldParamId + direction;
   if (newParamId == otherParamId) newParamId += direction;
-  if (newParamId < 0 || newParamId >= PARAM_COUNT) return;
+  if (newParamId < 0 || newParamId >= PARAM_COUNT || newParamId == PARAM_CHA_STATE) return;
   core_scene.pIds[row] = newParamId;
 
   core_drawRow(row);
@@ -196,18 +202,53 @@ void core_loadScene(byte sceneId) {
   core_showFlash(buffer);
 }
 
-void core_toggleMute(byte channel) {
-  core_scene.mix[PARAM_MUTE][channel] = !core_scene.mix[PARAM_MUTE][channel];
-  core_drawDial(ROW_TOP, channel);
-  core_drawDial(ROW_BOTTOM, channel);
-  es9_sendParam(PARAM_MUTE, channel, core_scene.mix);
+void core_resetAllChaStates(void) {
+  for (byte cha = 0; cha < 8; cha++) {
+    core_scene.mix[PARAM_CHA_STATE][cha] = CHA_STATE_NORMAL;
+  }
+  core_drawRow(0);
+  core_drawRow(1);
+  for (byte cha = 0; cha < 8; cha++) {
+    es9_sendParam(PARAM_CHA_STATE, cha, core_scene.mix);
+  }
+}
+
+void core_toggleChaState(byte channel, bool shift) {
+  byte currState = core_scene.mix[PARAM_CHA_STATE][channel];
+  byte newState = CHA_STATE_NORMAL;
+  if (currState == CHA_STATE_NORMAL) {
+    newState = shift ? CHA_STATE_SOLOED : CHA_STATE_MUTED;
+  } else if (shift && currState == CHA_STATE_SOLOED) {
+    for (byte cha = 0; cha < 8; cha++) {
+      if (core_scene.mix[PARAM_CHA_STATE][cha] == CHA_STATE_SOLOED) {
+        core_scene.mix[PARAM_CHA_STATE][cha] = CHA_STATE_NORMAL;
+      }
+    }
+  }
+  core_scene.mix[PARAM_CHA_STATE][channel] = newState;
+  if (currState == CHA_STATE_SOLOED || newState == CHA_STATE_SOLOED) {
+    core_drawRow(0);
+    core_drawRow(1);
+    for (byte cha = 0; cha < 8; cha++) {
+      es9_sendParam(PARAM_CHA_STATE, cha, core_scene.mix);
+    }
+  } else {
+    core_drawDial(0, channel);
+    core_drawDial(1, channel);
+    es9_sendParam(PARAM_CHA_STATE, channel, core_scene.mix);
+  }
 }
 
 void core_handleEncSwitch(byte enc, bool isPress) {
   if (enc == 0) {
     core_fnDown[0] = isPress;
+  } else if (enc == 9) {
+    core_fnDown[1] = isPress;
+    if (isPress && core_fnDown[0]) {
+      core_resetAllChaStates();
+    }
   } else if (enc >= 10 && isPress) {
-    core_toggleMute(enc - 10);
+    core_toggleChaState(enc - 10, core_fnDown[1]);
   } else if (enc >= 1 && enc <= 8 && !isPress) {
     if (core_fnDown[0]) {
       core_saveScene(enc - 1);
@@ -232,7 +273,7 @@ void core_handleEncRotate(byte enc, int direction, byte speed) {
   }
 }
 
-void core_seed() {
+void core_seed(void) {
   for (byte i = 0; i < 9; i++) {
     Scene scene = {
       .pIds = {PARAM_PAN, PARAM_VOL},
@@ -300,14 +341,14 @@ void core_loop(void) {
           speed = 2;
         }
       }
-      core_prevLastActiveMs = core_lastActiveMs;
-      core_lastActiveMs = now;
       int encDirection = encAction == ENC_ACTION_INC ? 1 : -1;
       core_handleEncRotate(encIndex, encDirection, speed);
     } else {
       bool isPress = encAction == ENC_ACTION_PRESS;
       core_handleEncSwitch(encIndex, isPress);
     }
+    core_prevLastActiveMs = core_lastActiveMs;
+    core_lastActiveMs = now;
     return;
   }
 
