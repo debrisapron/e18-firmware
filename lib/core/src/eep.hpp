@@ -1,4 +1,4 @@
-#define EEP_VERSION 9
+#define EEP_VERSION 10
 #define EEP_UID 0xB0, 0xF5, 0x66, 0x82
 #define HEADER_LEN 5
 

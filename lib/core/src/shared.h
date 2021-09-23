@@ -85,7 +85,17 @@ const FilterType filterTypes[FILTER_TYPE_COUNT] = {
 
 void gfx_setup(void);
 void gfx_start(void);
-void gfx_drawDial(byte row, byte channel, byte value, const char* displayValue, byte chaState, bool isScalar, bool isDisabled, bool isSilent);
+void gfx_drawDial(
+  byte row,
+  byte channel,
+  byte value,
+  const char* displayValue,
+  byte chaState,
+  bool isScalar,
+  bool isBipolar,
+  bool isDisabled,
+  bool isSilent
+);
 void gfx_drawParamName(byte row, const char* name);
 void gfx_drawFlash(const char* msg);
 void gfx_clearFlash();

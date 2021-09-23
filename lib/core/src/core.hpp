@@ -93,6 +93,7 @@ void core_drawDial(byte row, byte channel) {
   byte kind = params[paramId].kind;
   byte chaState = core_scene.mix[PARAM_CHA_STATE][channel];
   bool isScalar = kind != PARAM_KIND_FILTER_TYPE;
+  bool isBipolar = kind == PARAM_KIND_PAN;
   bool isDisabled = core_getIsParamDisabled(paramId, channel);
   bool isSilent = false;
   if (chaState == CHA_STATE_MUTED) {
@@ -106,7 +107,17 @@ void core_drawDial(byte row, byte channel) {
     }
   }
   core_getDisplayValue(displayValue, kind, isDisabled, value);
-  gfx_drawDial(row, channel, value, displayValue, chaState, isScalar, isDisabled, isSilent);
+  gfx_drawDial(
+    row,
+    channel,
+    value,
+    displayValue,
+    chaState,
+    isScalar,
+    isBipolar,
+    isDisabled,
+    isSilent
+  );
 }
 
 void core_updateValue(byte row, byte channel, int direction, byte speed) {
