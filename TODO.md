@@ -1,10 +1,12 @@
-- Dirty scene indicator
+- Reorg core
+- Sync all ES9 params (kind of panic button)
+- Full reset
 - Mono/Stereo channels
 - Flash ES9
+- Dirty scene indicator
 - Saving-to-EEPROM indicator
 - Save param selection
 - Switch to raw mix for gain
-- Sync all ES9 params (kind of panic button)
 - Channels 9-16
 - Advanced routing
 - Crossfader

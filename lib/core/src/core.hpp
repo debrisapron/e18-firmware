@@ -1,18 +1,79 @@
 #define STARTUP_WAIT 1000
 #define ACTIVE_TIMEOUT_MS 1000
 #define FLASH_DURATION 1000
+#define MENU_ITEM_COUNT 3
 
-#define PARAM_FILTER_TYPE_COUNT 8
+typedef enum {
+  MODE_MIX,
+  MODE_MENU,
+  MODE_EDIT_NAMES
+} Mode;
+typedef enum {
+  PARAM_KIND_VOL,
+  PARAM_KIND_PAN,
+  PARAM_KIND_FILTER_TYPE,
+  PARAM_KIND_FILTER_FREQ,
+  PARAM_KIND_FILTER_GAIN,
+  PARAM_KIND_FILTER_Q
+} ParamKind;
+
+typedef struct {
+  const char* name;
+  const ParamKind kind;
+} Param;
+
+const Param core_params[PARAM_COUNT] = {
+  { "VOL" },
+  { "PAN", PARAM_KIND_PAN },
+  { "EQ1 TYPE", PARAM_KIND_FILTER_TYPE },
+  { "EQ1 FREQ", PARAM_KIND_FILTER_FREQ },
+  { "EQ1 GAIN", PARAM_KIND_FILTER_GAIN },
+  { "EQ1 Q", PARAM_KIND_FILTER_Q },
+  { "EQ2 TYPE", PARAM_KIND_FILTER_TYPE },
+  { "EQ2 FREQ", PARAM_KIND_FILTER_FREQ },
+  { "EQ2 GAIN", PARAM_KIND_FILTER_GAIN },
+  { "EQ2 Q", PARAM_KIND_FILTER_Q },
+  { "EQ3 TYPE", PARAM_KIND_FILTER_TYPE },
+  { "EQ3 FREQ", PARAM_KIND_FILTER_FREQ },
+  { "EQ3 GAIN", PARAM_KIND_FILTER_GAIN },
+  { "EQ3 Q", PARAM_KIND_FILTER_Q },
+  { "EQ4 TYPE", PARAM_KIND_FILTER_TYPE },
+  { "EQ4 FREQ", PARAM_KIND_FILTER_FREQ },
+  { "EQ4 GAIN", PARAM_KIND_FILTER_GAIN },
+  { "EQ4 Q", PARAM_KIND_FILTER_Q },
+  { "AUX1" },
+  { "AUX1 PAN", PARAM_KIND_PAN },
+  { "AUX2" },
+  { "AUX2 PAN", PARAM_KIND_PAN },
+  { "AUX3" },
+  { "AUX3 PAN", PARAM_KIND_PAN },
+  { "STATE" }
+};
+const char *core_menuItems[MENU_ITEM_COUNT][3] = {
+  {"EDIT", "CHA", "NAMES"},
+  {"", "SYNC", "ES-9"},
+  {"", "FULL", "RESET"}
+};
+const char *core_okMenuItem[] = {" OK", "", ""};
 
 Scene core_scene;
 Scene core_sceneSlots[8];
-bool core_fnDown[2] = {0, 0};
+bool core_fnDown[2] = {false, false};
+bool core_fnWasUsedAsShift[2] = {false, false};
+Mode core_mode = MODE_MIX;
+char core_chanNamesBuffer[8][6];
+byte core_chanNameInEdit;
 unsigned long core_lastActiveMs = 0; // When set to zero, never go idle
 unsigned long core_prevLastActiveMs = 0;
 unsigned long core_lastShowedFlash = 0;
 
+void core_setDirty(void) {
+  core_prevLastActiveMs = core_lastActiveMs;
+  core_lastActiveMs = millis();
+}
+
 // Hacked from the ES9 web config tool. Absolutely minging
-void sevenBitToDb(char *buff, byte v) {
+void core_sevenBitToDb(char *buff, byte v) {
   if (v == 0) {
     sprintf(buff, "-inf");
     return;
@@ -34,7 +95,7 @@ void sevenBitToDb(char *buff, byte v) {
 }
 
 // Also hacked from the ES9 web config tool, but much nicer
-void sevenBitToFreq(char *buff, byte v) {
+void core_sevenBitToFreq(char *buff, byte v) {
   double min = 10.0;
   double mult = log(22000.0 / min) / 128.0;
   double freq = min * exp(mult * v);
@@ -51,7 +112,7 @@ void core_getDisplayValue(char* buff, byte paramId, bool isDisabled, byte value)
     return;
   }
 
-  byte kind = params[paramId].kind;
+  byte kind = core_params[paramId].kind;
   switch (kind) {
     case PARAM_KIND_PAN: {
       int dispVal = value / 2 - 64;
@@ -65,11 +126,11 @@ void core_getDisplayValue(char* buff, byte paramId, bool isDisabled, byte value)
       break;
     }
     case PARAM_KIND_FILTER_FREQ: {
-      sevenBitToFreq(buff, value / 2);
+      core_sevenBitToFreq(buff, value / 2);
       break;
     }
     default: {
-      sevenBitToDb(buff, value / 2);
+      core_sevenBitToDb(buff, value / 2);
       break;
     }
   }
@@ -77,7 +138,7 @@ void core_getDisplayValue(char* buff, byte paramId, bool isDisabled, byte value)
 
 bool core_getIsParamDisabled(byte paramId, byte channel) {
   byte parentParamId;
-  switch(params[paramId].kind) {
+  switch(core_params[paramId].kind) {
     case PARAM_KIND_FILTER_FREQ: parentParamId = paramId - 1; break;
     case PARAM_KIND_FILTER_GAIN: parentParamId = paramId - 2; break;
     case PARAM_KIND_FILTER_Q: parentParamId = paramId - 3; break;
@@ -90,7 +151,7 @@ void core_drawDial(byte row, byte channel) {
   char displayValue[5];
   byte paramId = core_scene.pIds[row];
   byte value = core_scene.mix[paramId][channel];
-  byte kind = params[paramId].kind;
+  byte kind = core_params[paramId].kind;
   byte chaState = core_scene.mix[PARAM_CHA_STATE][channel];
   bool isScalar = kind != PARAM_KIND_FILTER_TYPE;
   bool isBipolar = kind == PARAM_KIND_PAN;
@@ -106,11 +167,13 @@ void core_drawDial(byte row, byte channel) {
       }
     }
   }
+  char *chanName = core_scene.chanNames[channel];
   core_getDisplayValue(displayValue, kind, isDisabled, value);
   gfx_drawDial(
     row,
     channel,
     value,
+    chanName,
     displayValue,
     chaState,
     isScalar,
@@ -125,7 +188,7 @@ void core_updateValue(byte row, byte channel, int direction, byte speed) {
   if (core_getIsParamDisabled(paramId, channel)) return;
   
   byte oldValue = core_scene.mix[paramId][channel];
-  byte kind = params[paramId].kind;
+  byte kind = core_params[paramId].kind;
   byte step;
   byte limit;
   switch (kind) {
@@ -160,12 +223,14 @@ void core_updateValue(byte row, byte channel, int direction, byte speed) {
     byte otherRow = 1 - row;
     core_drawDial(otherRow, channel);
   }
+
+  core_setDirty();
 }
 
 void core_drawRow(byte row) {
   byte paramId = core_scene.pIds[row];
 
-  gfx_drawParamName(row, params[paramId].name);
+  gfx_drawParamName(row, core_params[paramId].name);
 
   // Draw dials
   for (byte channel = 0; channel < CHANNEL_COUNT; channel++) {
@@ -185,6 +250,60 @@ void core_updateParam(byte row, int direction) {
   core_scene.pIds[row] = newParamId;
 
   core_drawRow(row);
+  core_setDirty();
+}
+
+void core_drawChanName(byte chan) {
+  const char *chName[] = {"", "", core_chanNamesBuffer[chan]};
+  gfx_drawMenuItem(
+    0,
+    chan,
+    chName,
+    chan == core_chanNameInEdit
+  );
+}
+
+void core_updateChanName(byte charIndex, int delta) {
+  int c = core_chanNamesBuffer[core_chanNameInEdit][charIndex] + delta;
+  if (c < 32) c = 32;
+  if (c > 126) c = 126;
+  core_chanNamesBuffer[core_chanNameInEdit][charIndex] = (char)c;
+  core_drawChanName(core_chanNameInEdit);
+}
+
+void core_drawChanNames(void) {
+  for (byte chan = 0; chan < 8; chan++) {
+    core_drawChanName(chan);
+  }
+}
+
+void core_switchToMode(Mode mode) {
+  gfx_clear();
+  switch(mode) {
+    case MODE_MIX:
+      core_drawRow(0);
+      core_drawRow(1);
+      break;
+    case MODE_MENU:
+      for (byte i = 0; i < MENU_ITEM_COUNT; i++) {
+        gfx_drawMenuItem(0, i, core_menuItems[i]);
+      }
+      break;
+    case MODE_EDIT_NAMES:
+      gfx_drawParamName(1, "EDIT NAMES");
+      memcpy(&core_chanNamesBuffer, &(core_scene.chanNames), sizeof(core_chanNamesBuffer));
+      core_chanNameInEdit = 0;
+      core_drawChanNames();
+      for (byte i = 0; i < 5; i++) {
+        char label[6];
+        sprintf(label, "CHR %i", i);
+        const char *text[] = {label, "", ""};
+        gfx_drawMenuItem(1, i, text, true);
+      }
+      gfx_drawMenuItem(1, 7, core_okMenuItem);
+      break;
+  }
+  core_mode = mode;
 }
 
 void core_showFlash(const char* msg) {
@@ -192,8 +311,16 @@ void core_showFlash(const char* msg) {
   core_lastShowedFlash = millis();
 }
 
+void core_saveChanNameChanges(void) {
+  memcpy(&(core_scene.chanNames), &core_chanNamesBuffer, sizeof(core_chanNamesBuffer));
+  core_switchToMode(MODE_MIX);
+  core_showFlash("saved channel name changes");
+  core_setDirty();
+}
+
 void core_saveScene(byte sceneId) {
   memcpy(&core_sceneSlots[sceneId], &core_scene, sizeof(Scene));
+  eep_save(&core_sceneSlots[sceneId], sceneId + 1);
 
   char buffer[14];
   sprintf(buffer, "saved scene %i", sceneId + 1);
@@ -203,14 +330,16 @@ void core_saveScene(byte sceneId) {
 void core_loadScene(byte sceneId) {
   memcpy(&core_scene, &core_sceneSlots[sceneId], sizeof(Scene));
 
-  core_drawRow(ROW_TOP);
-  core_drawRow(ROW_BOTTOM);
+  gfx_clear();
+  core_drawRow(0);
+  core_drawRow(1);
 
   es9_setup(core_scene.mix);
 
   char buffer[15];
   sprintf(buffer, "loaded scene %i", sceneId + 1);
   core_showFlash(buffer);
+  core_setDirty();
 }
 
 void core_resetAllChaStates(void) {
@@ -222,6 +351,7 @@ void core_resetAllChaStates(void) {
   for (byte cha = 0; cha < 8; cha++) {
     es9_sendParam(PARAM_CHA_STATE, cha, core_scene.mix);
   }
+  core_setDirty();
 }
 
 void core_toggleChaState(byte channel, bool shift) {
@@ -237,6 +367,7 @@ void core_toggleChaState(byte channel, bool shift) {
     }
   }
   core_scene.mix[PARAM_CHA_STATE][channel] = newState;
+  
   if (currState == CHA_STATE_SOLOED || newState == CHA_STATE_SOLOED) {
     core_drawRow(0);
     core_drawRow(1);
@@ -248,20 +379,55 @@ void core_toggleChaState(byte channel, bool shift) {
     core_drawDial(1, channel);
     es9_sendParam(PARAM_CHA_STATE, channel, core_scene.mix);
   }
+
+  core_setDirty();
 }
 
 void core_handleEncSwitch(byte enc, bool isPress) {
+  bool isRelease = !isPress;
+
+  // Handle top function switch
   if (enc == 0) {
     core_fnDown[0] = isPress;
-  } else if (enc == 9) {
+    if (isRelease) {
+      if (core_mode != MODE_MIX) {
+        core_switchToMode(MODE_MIX);
+      } else if(!core_fnWasUsedAsShift[0]) {
+        core_switchToMode(MODE_MENU);
+      }
+      core_fnWasUsedAsShift[0] = false;
+    }
+
+  // Handle bottom function switch
+  } else if (enc == 9 && core_mode == MODE_MIX) {
     core_fnDown[1] = isPress;
     if (isPress && core_fnDown[0]) {
+      core_fnWasUsedAsShift[0] = true;
+      core_fnWasUsedAsShift[1] = true;
       core_resetAllChaStates();
+    } else if (isRelease) {
+      core_fnWasUsedAsShift[1] = false;
     }
+
+  // Handle bottom channel switches
   } else if (enc >= 10 && isPress) {
-    core_toggleChaState(enc - 10, core_fnDown[1]);
-  } else if (enc >= 1 && enc <= 8 && !isPress) {
-    if (core_fnDown[0]) {
+    if (core_mode == MODE_EDIT_NAMES && enc == 17) {
+      core_saveChanNameChanges();
+    } else if (core_mode == MODE_MIX) {
+      core_toggleChaState(enc - 10, core_fnDown[1]);
+    }
+
+  // Handle top channel switches
+  } else if (enc >= 1 && enc <= 8 && isRelease) {
+    if (core_mode == MODE_MENU) {
+      switch(enc) {
+        case 1: core_switchToMode(MODE_EDIT_NAMES); break;
+      }
+    } else if (core_mode == MODE_EDIT_NAMES) {
+      core_chanNameInEdit = enc - 1;
+      core_drawChanNames();
+    } else if (core_fnDown[0]) {
+      core_fnWasUsedAsShift[0] = true;
       core_saveScene(enc - 1);
     } else {
       core_loadScene(enc - 1);
@@ -270,6 +436,14 @@ void core_handleEncSwitch(byte enc, bool isPress) {
 }
 
 void core_handleEncRotate(byte enc, int direction, byte speed) {
+  if (core_mode == MODE_EDIT_NAMES) {
+    if (enc >= 10 && enc <= 14) {
+      core_updateChanName(enc - 10, direction * speed);
+    }
+  }
+
+  if (core_mode != MODE_MIX) return;
+
   if (enc == 0) {
     // Handle top param switch enc
     core_updateParam(ROW_TOP, direction);
@@ -288,10 +462,11 @@ void core_seed(void) {
   for (byte i = 0; i < 9; i++) {
     Scene scene = {
       .pIds = {PARAM_PAN, PARAM_VOL},
+      .chanNames = {"  1  ", "  2  ", "  3  ", "  4  ", "  5  ", "  6  ", "  7  ", "  8  "}
     };
     for (byte pId = 0; pId < PARAM_COUNT; pId++) {
-      for (byte ch = 0; ch < CHANNEL_COUNT; ch++) {
-        scene.mix[pId][ch] = (params[pId].kind == PARAM_KIND_PAN) ? 128 : 0;
+      for (byte chan = 0; chan < CHANNEL_COUNT; chan++) {
+        scene.mix[pId][chan] = (core_params[pId].kind == PARAM_KIND_PAN) ? 128 : 0;
       }
     }
     if (i == 0) {
@@ -299,6 +474,7 @@ void core_seed(void) {
     } else {
       core_sceneSlots[i - 1] = scene;
     }
+    eep_save(&scene, i);
   }
 }
 
@@ -307,8 +483,14 @@ void core_setup(void) {
   gfx_setup();
 
   // Get mix from EEPROM or intitialize
-  bool isRestored = eep_load(&core_scene, core_sceneSlots);
-  if (!isRestored) core_seed();
+  bool isRestored = eep_load(&core_scene, 0);
+  if (isRestored) {
+    for (byte slot = 1; slot < 9; slot++) {
+      eep_load(&core_sceneSlots[slot - 1], slot);
+    }
+  } else {
+    core_seed();
+  }
 
   // Start encoders
   encs_setup();
@@ -323,8 +505,8 @@ void core_setup(void) {
   gfx_start();
 
   // Draw top & bottom dial rows
-  core_drawRow(ROW_TOP);
-  core_drawRow(ROW_BOTTOM);
+  core_drawRow(0);
+  core_drawRow(1);
 
   core_showFlash(isRestored ? "restored state from EEPROM" : "initialized state");
 }
@@ -358,15 +540,13 @@ void core_loop(void) {
       bool isPress = encAction == ENC_ACTION_PRESS;
       core_handleEncSwitch(encIndex, isPress);
     }
-    core_prevLastActiveMs = core_lastActiveMs;
-    core_lastActiveMs = now;
     return;
   }
 
   if (core_lastActiveMs != 0 && (now - core_lastActiveMs) > ACTIVE_TIMEOUT_MS) {
     core_lastActiveMs = 0;
     core_prevLastActiveMs = 0;
-    eep_save(&core_scene, core_sceneSlots);
+    eep_save(&core_scene, 0);
     core_showFlash("*");
   }
 }

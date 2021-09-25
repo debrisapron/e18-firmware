@@ -1,24 +1,29 @@
-#define EEP_VERSION 10
+#define EEP_VERSION 17
 #define EEP_UID 0xB0, 0xF5, 0x66, 0x82
 #define HEADER_LEN 5
 
 const byte eep_header[HEADER_LEN] = {EEP_UID, EEP_VERSION};
+bool eep_headerOk = false;
 
-bool eep_load(Scene *scene, Scene sceneSlots[8]) {
-  bool headerOk = true;
-  for (byte h = 0; h < HEADER_LEN; h++) {
-    headerOk = headerOk && (EEPROM.read(h) == eep_header[h]);
+bool eep_load(Scene *scene, byte slot) {
+  if (!eep_headerOk) {
+    bool headerOk = true;
+    for (byte h = 0; h < HEADER_LEN; h++) {
+      headerOk = headerOk && (EEPROM.read(h) == eep_header[h]);
+    }
+    eep_headerOk = headerOk;
+    if (!headerOk) return false;
   }
-  if (!headerOk) return false;
 
-  EEPROM.get(HEADER_LEN, *scene);
-  EEPROM.get(HEADER_LEN + sizeof(Scene), sceneSlots);
+  EEPROM.get(HEADER_LEN + sizeof(Scene) * slot, *scene);
   return true;
 }
 
-void eep_save(Scene *scene, Scene sceneSlots[8]) {
-  EEPROM.put(0, eep_header);
+void eep_save(Scene *scene, byte slot) {
+  if (!eep_headerOk) {
+    EEPROM.put(0, eep_header);
+    eep_headerOk = true;
+  }
 
-  EEPROM.put(HEADER_LEN, *scene);
-  EEPROM.put(HEADER_LEN + sizeof(Scene), sceneSlots);
+  EEPROM.put(HEADER_LEN + sizeof(Scene) * slot, *scene);
 }
