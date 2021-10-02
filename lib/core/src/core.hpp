@@ -356,17 +356,26 @@ void core_resetAllChaStates(void) {
 
 void core_toggleChaState(byte channel, bool shift) {
   byte currState = core_scene.mix[PARAM_CHA_STATE][channel];
+  bool soloDefeat = false;
   byte newState = CHA_STATE_NORMAL;
+
   if (currState == CHA_STATE_NORMAL) {
     newState = shift ? CHA_STATE_SOLOED : CHA_STATE_MUTED;
-  } else if (shift && currState == CHA_STATE_SOLOED) {
+  } else if (currState == CHA_STATE_MUTED && shift) {
+    newState = CHA_STATE_SOLOED;
+  } else if (currState == CHA_STATE_SOLOED && shift) {
+    soloDefeat = true;
+  }
+
+  if (soloDefeat) {
     for (byte cha = 0; cha < 8; cha++) {
       if (core_scene.mix[PARAM_CHA_STATE][cha] == CHA_STATE_SOLOED) {
         core_scene.mix[PARAM_CHA_STATE][cha] = CHA_STATE_NORMAL;
       }
     }
+  } else {
+    core_scene.mix[PARAM_CHA_STATE][channel] = newState;
   }
-  core_scene.mix[PARAM_CHA_STATE][channel] = newState;
   
   if (currState == CHA_STATE_SOLOED || newState == CHA_STATE_SOLOED) {
     core_drawRow(0);

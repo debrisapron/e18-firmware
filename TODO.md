@@ -2,6 +2,7 @@
 - Sync all ES9 params (kind of panic button)
 - Full reset
 - Mono/Stereo channels
+- Setup standard routing on ES9
 - Flash ES9
 - Dirty scene indicator
 - Saving-to-EEPROM indicator
